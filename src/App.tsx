@@ -56,10 +56,16 @@ export default function App() {
 
   // Admin Security States
   const [showAdmin, setShowAdmin] = useState(false);
-  const [adminPassword, setAdminPassword] = useState("admin123");
+  const [adminPassword, setAdminPassword] = useState(() => {
+    return localStorage.getItem("travelbharat_admin_password") || "admin123";
+  });
   const [adminPass, setAdminPass] = useState("");
   const [showAdminLogin, setShowAdminLogin] = useState(false);
   const [adminError, setAdminError] = useState("");
+
+  useEffect(() => {
+    localStorage.setItem("travelbharat_admin_password", adminPassword);
+  }, [adminPassword]);
 
   // Mobile navigation trigger
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -1156,9 +1162,11 @@ export default function App() {
               </div>
             </div>
 
-            <p className="text-center text-[10px] text-slate-400 mt-6 leading-none">
-              Default credentials passcode: <span className="font-bold text-slate-600">{adminPassword}</span>
-            </p>
+            {adminPassword === "admin123" && (
+              <p className="text-center text-[10px] text-slate-400 mt-6 leading-none">
+                Default credentials passcode: <span className="font-bold text-slate-600">{adminPassword}</span>
+              </p>
+            )}
 
           </div>
         </div>

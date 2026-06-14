@@ -1084,7 +1084,6 @@ export default function AdminPanel({
               >
                 Change Admin Password
               </button>
-              <p className="text-[11px] text-slate-400 leading-normal pt-2">Note: Credentials resets back to 'admin123' if you refresh or reload the browser session.</p>
             </div>
           )}
         </div>

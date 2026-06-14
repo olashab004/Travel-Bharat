@@ -36,23 +36,15 @@ service cloud.firestore {
     }
 
     match /users/{userId} {
-      allow read, list: if isSignedIn();
+      allow read: if true;
       
-      allow create: if isSignedIn() 
-        && isValidId(userId) 
+      allow create: if isValidId(userId) 
         && isValidTravelClient(request.resource.data);
 
-      allow update: if isSignedIn()
-        && isValidId(userId)
-        && isValidTravelClient(request.resource.data)
-        && (
-          isOwner(userId) || 
-          // Allow administrative updates
-          request.auth.token.email_verified == true
-        );
+      allow update: if isValidId(userId)
+        && isValidTravelClient(request.resource.data);
 
-      allow delete: if isSignedIn() 
-        && (isOwner(userId) || request.auth.token.email_verified == true);
+      allow delete: if isValidId(userId);
     }
   }
 }
