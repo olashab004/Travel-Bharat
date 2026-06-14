@@ -8,130 +8,130 @@ import { IndiaData } from "./types";
 // Premium CORS-enabled Unsplash Images for India Destinations
 export const IMG = {
   // Rajasthan
-  rajasthan: "https://images.unsplash.com/photo-1477587458883-471a5ed04af4?auto=format&fit=crop&w=800&q=80",
-  amberFort: "https://images.unsplash.com/photo-1599661046289-e31897846e41?auto=format&fit=crop&w=800&q=80",
-  hawaMahal: "https://images.unsplash.com/photo-1603262110263-fb0112e7cc33?auto=format&fit=crop&w=800&q=80",
-  mehrangarh: "https://images.unsplash.com/photo-1545128485-c400e7702796?auto=format&fit=crop&w=800&q=80",
-  jaisalmer: "https://images.unsplash.com/photo-1615657881775-6e5ce75f5647?auto=format&fit=crop&w=800&q=80",
-  ranthambore: "https://images.unsplash.com/photo-1581888227599-779811939961?auto=format&fit=crop&w=800&q=80",
-  pushkar: "https://images.unsplash.com/photo-1517330357046-3abbc877fd9a?auto=format&fit=crop&w=800&q=80",
+  rajasthan: "https://upload.wikimedia.org/wikipedia/commons/f/fb/20191219_Fort_Amber%2C_Amer%2C_Jaipur_0955_9481.jpg",
+  amberFort: "https://upload.wikimedia.org/wikipedia/commons/f/fb/20191219_Fort_Amber%2C_Amer%2C_Jaipur_0955_9481.jpg",
+  hawaMahal: "https://upload.wikimedia.org/wikipedia/commons/4/41/East_facade_Hawa_Mahal_Jaipur_from_ground_level_%28July_2022%29_-_img_01.jpg",
+  mehrangarh: "https://upload.wikimedia.org/wikipedia/commons/9/99/Mehrangarh_Fort_sanhita.jpg",
+  jaisalmer: "https://upload.wikimedia.org/wikipedia/commons/4/47/Jaisalmer_forteresse.jpg",
+  ranthambore: "https://upload.wikimedia.org/wikipedia/commons/7/7f/Ranthambore_National_Park.JPG",
+  pushkar: "https://upload.wikimedia.org/wikipedia/commons/c/c3/Evening_lights_by_the_Pushkar_Lake%2C_Pushkar.jpg",
 
   // Kerala
-  kerala: "https://images.unsplash.com/photo-1593693397690-362cb9666fc2?auto=format&fit=crop&w=800&q=80",
-  alleppey: "https://images.unsplash.com/photo-1593693397690-362cb9666fc2?auto=format&fit=crop&w=800&q=80",
-  munnar: "https://images.unsplash.com/photo-1506461883276-594a12b11cc3?auto=format&fit=crop&w=800&q=80",
-  periyar: "https://images.unsplash.com/photo-1589182373726-e4f658ab50f0?auto=format&fit=crop&w=800&q=80",
-  varkala: "https://images.unsplash.com/photo-1590523277543-a94d2e4eb00b?auto=format&fit=crop&w=800&q=80",
-  fortkochi: "https://images.unsplash.com/photo-1602216056096-3b40cc0c9944?auto=format&fit=crop&w=800&q=80",
+  kerala: "https://upload.wikimedia.org/wikipedia/commons/e/ee/House_Boat_DSW.jpg",
+  alleppey: "https://upload.wikimedia.org/wikipedia/commons/e/ee/House_Boat_DSW.jpg",
+  munnar: "https://upload.wikimedia.org/wikipedia/commons/b/b9/Munnar_Overview.jpg",
+  periyar: "https://upload.wikimedia.org/wikipedia/commons/6/66/Periyar_National_Park.JPG",
+  varkala: "https://upload.wikimedia.org/wikipedia/commons/e/e0/Varkala_beach_from_above.jpg",
+  fortkochi: "https://upload.wikimedia.org/wikipedia/commons/6/6e/Kochi%2C_Fishing_nets_at_sunset%2C_Kerala%2C_India.jpg",
 
   // Uttarakhand
-  uttarakhand: "https://images.unsplash.com/photo-1584143217277-2fe654d0ad4b?auto=format&fit=crop&w=800&q=80",
-  kedarnath: "https://images.unsplash.com/photo-1626621341517-bbf3d9990a23?auto=format&fit=crop&w=800&q=80",
-  rishikesh: "https://images.unsplash.com/photo-1598977123418-45f04b6159c4?auto=format&fit=crop&w=800&q=80",
-  corbett: "https://images.unsplash.com/photo-1504450758481-7338eba7524a?auto=format&fit=crop&w=800&q=80",
-  auli: "https://images.unsplash.com/photo-1605649487212-47bdab064df7?auto=format&fit=crop&w=800&q=80",
-  valleyFlowers: "https://images.unsplash.com/photo-1582533561751-ef6f6ab93a2e?auto=format&fit=crop&w=800&q=80",
+  uttarakhand: "https://upload.wikimedia.org/wikipedia/commons/5/56/Kedarnath_Temple_in_Rainy_season.jpg",
+  kedarnath: "https://upload.wikimedia.org/wikipedia/commons/5/56/Kedarnath_Temple_in_Rainy_season.jpg",
+  rishikesh: "https://upload.wikimedia.org/wikipedia/commons/7/74/Trayambakeshwar_Temple_VK.jpg",
+  corbett: "https://upload.wikimedia.org/wikipedia/commons/7/78/Bengal-Tiger_Corbett_Uttarakhand_Dec-2013.jpg",
+  auli: "https://upload.wikimedia.org/wikipedia/commons/8/83/Auli_Himalayas.jpg",
+  valleyFlowers: "https://upload.wikimedia.org/wikipedia/commons/5/50/Valley_of_flowers_national_park%2C_Uttarakhand%2C_India_03_%28edit%29.jpg",
 
   // Goa
-  goa: "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=800&q=80",
-  bomJesus: "https://images.unsplash.com/photo-1612891961405-b04297eff064?auto=format&fit=crop&w=800&q=80",
-  bagaBeach: "https://images.unsplash.com/photo-1512343879784-a960bf40e7f2?auto=format&fit=crop&w=800&q=80",
-  dudhsagar: "https://images.unsplash.com/photo-1581791538302-03537b9c97bf?auto=format&fit=crop&w=800&q=80",
-  aguada: "https://images.unsplash.com/photo-1583212292454-1fe6229603b7?auto=format&fit=crop&w=800&q=80",
+  goa: "https://upload.wikimedia.org/wikipedia/commons/a/a8/Baga_Beach%2C_Calangute%2C_Goa.jpg",
+  bomJesus: "https://upload.wikimedia.org/wikipedia/commons/9/9e/Front_Elevation_of_Basilica_of_Bom_Jesus.jpg",
+  bagaBeach: "https://upload.wikimedia.org/wikipedia/commons/a/a8/Baga_Beach%2C_Calangute%2C_Goa.jpg",
+  dudhsagar: "https://upload.wikimedia.org/wikipedia/commons/0/0b/Doodhsagar_Fall.jpg",
+  aguada: "https://upload.wikimedia.org/wikipedia/commons/a/ad/Fort_aguada.jpg",
 
   // Madhya Pradesh
-  mp: "https://images.unsplash.com/photo-1605553074351-f761fc37fe61?auto=format&fit=crop&w=800&q=80",
-  khajuraho: "https://images.unsplash.com/photo-1611082533257-23363364f8bf?auto=format&fit=crop&w=800&q=80",
-  bandhavgarh: "https://images.unsplash.com/photo-1533038590840-1cde6e668a91?auto=format&fit=crop&w=800&q=80",
-  sanchi: "https://images.unsplash.com/photo-1620311746206-896db86c47fc?auto=format&fit=crop&w=800&q=80",
-  orchha: "https://images.unsplash.com/photo-1626014903708-410079cc626c?auto=format&fit=crop&w=800&q=80",
+  mp: "https://upload.wikimedia.org/wikipedia/commons/c/c2/Lakshmana_Temple_%28Khajuraho%29.jpg",
+  khajuraho: "https://upload.wikimedia.org/wikipedia/commons/e/e7/1_Khajuraho.jpg",
+  bandhavgarh: "https://upload.wikimedia.org/wikipedia/commons/7/7f/Bandhavgarh_tiger.jpg",
+  sanchi: "https://upload.wikimedia.org/wikipedia/commons/7/7f/Stupa_1%2C_Sanchi_02.jpg",
+  orchha: "https://upload.wikimedia.org/wikipedia/commons/d/d2/Orchha_Fort.jpg",
 
   // Himachal Pradesh
-  himachal: "https://images.unsplash.com/photo-1597075687490-8f673c6c17f6?auto=format&fit=crop&w=800&q=80",
-  manali: "https://images.unsplash.com/photo-1605649487212-47bdab064df7?auto=format&fit=crop&w=800&q=80",
-  spiti: "https://images.unsplash.com/photo-1578502395632-484eeff106ee?auto=format&fit=crop&w=800&q=80",
-  shimla: "https://images.unsplash.com/photo-1597075687490-8f673c6c17f6?auto=format&fit=crop&w=800&q=80",
-  dharamshala: "https://images.unsplash.com/photo-1582238472534-1185038cbe6c?auto=format&fit=crop&w=800&q=80",
+  himachal: "https://upload.wikimedia.org/wikipedia/commons/b/b0/Manali_Himachal_Pradesh.jpg",
+  manali: "https://upload.wikimedia.org/wikipedia/commons/d/de/Snow_Rohtang_Range_Manali_May24_A7CR_00128.jpg",
+  spiti: "https://upload.wikimedia.org/wikipedia/commons/4/4d/Key_Monastery%2C_Spiti_Valley.jpg",
+  shimla: "https://upload.wikimedia.org/wikipedia/commons/b/ba/Landscape_of_Shimla_%2C_Himachal_Pradesh.jpg",
+  dharamshala: "https://upload.wikimedia.org/wikipedia/commons/a/a6/Dharamshala_03_%28Cropped%29.jpg",
 
   // Tamil Nadu
-  tn: "https://images.unsplash.com/photo-1582510003544-4d00b7f74220?auto=format&fit=crop&w=800&q=80",
-  meenakshi: "https://images.unsplash.com/photo-1600100397608-f010e422931e?auto=format&fit=crop&w=800&q=80",
-  mahabalipuram: "https://images.unsplash.com/photo-1580983187652-320c1920f32b?auto=format&fit=crop&w=800&q=80",
-  ooty: "https://images.unsplash.com/photo-1590490360182-c33d57733427?auto=format&fit=crop&w=800&q=80",
-  brihadeeswarar: "https://images.unsplash.com/photo-1616843413587-9e3a37f7bbd8?auto=format&fit=crop&w=800&q=80",
+  tn: "https://upload.wikimedia.org/wikipedia/commons/d/d2/Madurai_Meenakshi_Amman_Temple.jpg",
+  meenakshi: "https://upload.wikimedia.org/wikipedia/commons/c/c8/Tower_of_Meenakshi_amman_temple.jpg",
+  mahabalipuram: "https://upload.wikimedia.org/wikipedia/commons/c/c6/Shore_Temple_Mahabalipuram.jpg",
+  ooty: "https://upload.wikimedia.org/wikipedia/commons/d/db/Ooty_lake.jpg",
+  brihadeeswarar: "https://upload.wikimedia.org/wikipedia/commons/d/dd/Brihadisvara_Temple_during_Maha_Shivaratri-WUS03611_%28edit%29.jpg",
 
   // Gujarat
-  gujarat: "https://images.unsplash.com/photo-1599831776592-d6fc9a5ad0a1?auto=format&fit=crop&w=800&q=80",
-  rann: "https://images.unsplash.com/photo-1611718104595-dfec1eaef82f?auto=format&fit=crop&w=800&q=80",
-  somnath: "https://images.unsplash.com/photo-1626014167664-96696b9968b6?auto=format&fit=crop&w=800&q=80",
-  gir: "https://images.unsplash.com/photo-1602491453631-e2a5ad90a131?auto=format&fit=crop&w=800&q=80",
+  gujarat: "https://upload.wikimedia.org/wikipedia/commons/5/56/Rann_of_Kutch.jpg",
+  rann: "https://upload.wikimedia.org/wikipedia/commons/5/56/Rann_of_Kutch.jpg",
+  somnath: "https://upload.wikimedia.org/wikipedia/commons/a/a9/Sujay_Chatterjee_at_Somnath_Temple%2C_2024.jpg",
+  gir: "https://upload.wikimedia.org/wikipedia/commons/2/22/Asiatic_Lion_in_Gir_Forest.jpg",
 
   // West Bengal
-  wb: "https://images.unsplash.com/photo-1558431382-27e303142255?auto=format&fit=crop&w=800&q=80",
-  darjeeling: "https://images.unsplash.com/photo-1544735716-392fe2489ffa?auto=format&fit=crop&w=800&q=80",
-  victoria: "https://images.unsplash.com/photo-1558431382-27e303142255?auto=format&fit=crop&w=800&q=80",
-  sundarbans: "https://images.unsplash.com/photo-1615959189197-484c0fc98817?auto=format&fit=crop&w=800&q=80",
+  wb: "https://upload.wikimedia.org/wikipedia/commons/e/e9/Victoria_Memorial_Kolkata_2.jpg",
+  darjeeling: "https://upload.wikimedia.org/wikipedia/commons/6/60/Darjeeling_Himalayan_Railway%2Ctoy_train_%288%29.jpg",
+  victoria: "https://upload.wikimedia.org/wikipedia/commons/e/e9/Victoria_Memorial_Kolkata_2.jpg",
+  sundarbans: "https://upload.wikimedia.org/wikipedia/commons/0/05/Dense_Mangrove_Forest_of_the_Sundarban_Tiger_Reserve_during_High_Tide%2C_West_Bengal%2C_India_03.jpg",
 
   // Uttar Pradesh
-  up: "https://images.unsplash.com/photo-1564507592333-c60657eea523?auto=format&fit=crop&w=800&q=80",
-  tajMahal: "https://images.unsplash.com/photo-1564507592333-c60657eea523?auto=format&fit=crop&w=800&q=80",
-  varanasi: "https://images.unsplash.com/photo-1561361531-99e224e945c1?auto=format&fit=crop&w=800&q=80",
-  agraFort: "https://images.unsplash.com/photo-1585506942812-e72b29cef71a?auto=format&fit=crop&w=800&q=80",
-  baraImambara: "https://images.unsplash.com/photo-1619542402915-dcaf30e4e2a1?auto=format&fit=crop&w=800&q=80",
-  mathura: "https://images.unsplash.com/photo-1545205597-3d9d02c29597?auto=format&fit=crop&w=800&q=80",
+  up: "https://upload.wikimedia.org/wikipedia/commons/1/1d/Taj_Mahal_%28Edited%29.jpeg",
+  tajMahal: "https://upload.wikimedia.org/wikipedia/commons/1/1d/Taj_Mahal_%28Edited%29.jpeg",
+  varanasi: "https://upload.wikimedia.org/wikipedia/commons/0/0e/Varanasi%2C_India%2C_Ghats%2C_Cremation_ceremony_in_progress.jpg",
+  agraFort: "https://upload.wikimedia.org/wikipedia/commons/1/17/Agra_Fort_amidst_greenery.jpg",
+  baraImambara: "https://upload.wikimedia.org/wikipedia/commons/f/f0/Bara_Imambara_Lucknow.jpg",
+  mathura: "https://upload.wikimedia.org/wikipedia/commons/6/60/Vrindavan_Prem_Mandir.jpg",
 
   // Karnataka
-  karnataka: "https://images.unsplash.com/photo-1600100397990-24b322a2bb17?auto=format&fit=crop&w=800&q=80",
-  hampi: "https://images.unsplash.com/photo-1600100397990-24b322a2bb17?auto=format&fit=crop&w=800&q=80",
-  mysore: "https://images.unsplash.com/photo-1582208472535-6106606a1420?auto=format&fit=crop&w=800&q=80",
-  coorg: "https://images.unsplash.com/photo-1583262629471-eb6686001a1c?auto=format&fit=crop&w=800&q=80",
+  karnataka: "https://upload.wikimedia.org/wikipedia/commons/8/85/Vittala_Temple_Hampi.jpg",
+  hampi: "https://upload.wikimedia.org/wikipedia/commons/d/dd/Wide_angle_of_Galigopuram_of_Virupaksha_Temple%2C_Hampi_%2804%29_%28cropped%29.jpg",
+  mysore: "https://upload.wikimedia.org/wikipedia/commons/5/5a/Illuminated_Mysore_palace_at_night.JPG",
+  coorg: "https://upload.wikimedia.org/wikipedia/commons/b/b2/Coorg_Coffee_Estate.jpg",
 
   // Andhra Pradesh
-  ap: "https://images.unsplash.com/photo-1601823984263-b87b59798b70?auto=format&fit=crop&w=800&q=80",
-  tirupati: "https://images.unsplash.com/photo-1601823984263-b87b59798b70?auto=format&fit=crop&w=800&q=80",
-  araku: "https://images.unsplash.com/photo-1628155930542-3c7a64e2c833?auto=format&fit=crop&w=800&q=80",
+  ap: "https://upload.wikimedia.org/wikipedia/commons/5/52/Tirumala_Venkateswara_Temple.jpg",
+  tirupati: "https://upload.wikimedia.org/wikipedia/commons/d/d9/Tirumala_Venkateswara_temple_entrance_09062015.JPG",
+  araku: "https://upload.wikimedia.org/wikipedia/commons/7/7c/Araku_Valley_Coffee_Plantation.jpg",
 
   // Maharashtra
-  maha: "https://images.unsplash.com/photo-1566552881560-0be862a7c445?auto=format&fit=crop&w=800&q=80",
-  ajanta: "https://images.unsplash.com/photo-1627844718626-407ca836263e?auto=format&fit=crop&w=800&q=80",
-  gatewayIndia: "https://images.unsplash.com/photo-1566552881560-0be862a7c445?auto=format&fit=crop&w=800&q=80",
-  lonavala: "https://images.unsplash.com/photo-1602330041000-4b8119482931?auto=format&fit=crop&w=800&q=80",
+  maha: "https://upload.wikimedia.org/wikipedia/commons/b/b7/Ajanta_cave_26.jpg",
+  ajanta: "https://upload.wikimedia.org/wikipedia/commons/b/b7/Ajanta_cave_26.jpg",
+  gatewayIndia: "https://upload.wikimedia.org/wikipedia/commons/3/3a/Mumbai_03-2016_30_Gateway_of_India.jpg",
+  lonavala: "https://upload.wikimedia.org/wikipedia/commons/7/75/Lonavala_Lake.jpg",
 
   // Assam
-  assam: "https://images.unsplash.com/photo-1598974357830-72df4573a5a9?auto=format&fit=crop&w=800&q=80",
-  kaziranga: "https://images.unsplash.com/photo-1598974357830-72df4573a5a9?auto=format&fit=crop&w=800&q=80",
-  majuli: "https://images.unsplash.com/photo-1599572504812-70b551ef05ae?auto=format&fit=crop&w=800&q=80",
+  assam: "https://upload.wikimedia.org/wikipedia/commons/7/71/One_horned_rhino_in_kaziranga.jpg",
+  kaziranga: "https://upload.wikimedia.org/wikipedia/commons/7/71/One_horned_rhino_in_kaziranga.jpg",
+  majuli: "https://upload.wikimedia.org/wikipedia/commons/8/8e/Majuli_Island_Assam.jpg",
 
   // Punjab
-  punjab: "https://images.unsplash.com/photo-1514222134-b57cbb8ce073?auto=format&fit=crop&w=800&q=80",
-  goldenTemple: "https://images.unsplash.com/photo-1514222134-b57cbb8ce073?auto=format&fit=crop&w=800&q=80",
-  wagah: "https://images.unsplash.com/photo-1587570417974-9cd1eb02b0c6?auto=format&fit=crop&w=800&q=80",
+  punjab: "https://upload.wikimedia.org/wikipedia/commons/9/94/Golden_Temple%2C_Amritsar_2.jpg",
+  goldenTemple: "https://upload.wikimedia.org/wikipedia/commons/9/94/Golden_Temple%2C_Amritsar_2.jpg",
+  wagah: "https://upload.wikimedia.org/wikipedia/commons/5/5e/Wagah_Border_Ceremony.jpg",
 
   // Manipur
-  manipur: "https://images.unsplash.com/photo-1616038242814-a6eac7845d88?auto=format&fit=crop&w=800&q=80",
-  loktak: "https://images.unsplash.com/photo-1616038242814-a6eac7845d88?auto=format&fit=crop&w=800&q=80",
+  manipur: "https://upload.wikimedia.org/wikipedia/commons/a/a0/Loktak_Lake.jpg",
+  loktak: "https://upload.wikimedia.org/wikipedia/commons/a/a0/Loktak_Lake.jpg",
 
   // Meghalaya
-  meghalaya: "https://images.unsplash.com/photo-1549488344-1f9b8d2bd1f3?auto=format&fit=crop&w=800&q=80",
-  cherrapunji: "https://images.unsplash.com/photo-1549488344-1f9b8d2bd1f3?auto=format&fit=crop&w=800&q=80",
-  dawki: "https://images.unsplash.com/photo-1610444318765-a832e1bb4255?auto=format&fit=crop&w=800&q=80",
+  meghalaya: "https://upload.wikimedia.org/wikipedia/commons/0/09/Living_root_bridge_Cherrapunji.jpg",
+  cherrapunji: "https://upload.wikimedia.org/wikipedia/commons/0/09/Living_root_bridge_Cherrapunji.jpg",
+  dawki: "https://upload.wikimedia.org/wikipedia/commons/7/73/Dawki_river_Meghalaya.jpg",
 
   // Odisha
-  odisha: "https://images.unsplash.com/photo-1601614271810-cb8da9f5de99?auto=format&fit=crop&w=800&q=80",
-  konark: "https://images.unsplash.com/photo-1601614271810-cb8da9f5de99?auto=format&fit=crop&w=800&q=80",
-  puri: "https://images.unsplash.com/photo-1624446416629-61611a140d39?auto=format&fit=crop&w=800&q=80",
-  chilika: "https://images.unsplash.com/photo-1601931885472-edec4ba57827?auto=format&fit=crop&w=800&q=80",
+  odisha: "https://upload.wikimedia.org/wikipedia/commons/d/d5/Konarka_Temple.jpg",
+  konark: "https://upload.wikimedia.org/wikipedia/commons/d/d5/Konarka_Temple.jpg",
+  puri: "https://upload.wikimedia.org/wikipedia/commons/4/4f/Puri_Jagannath_Temple.jpg",
+  chilika: "https://upload.wikimedia.org/wikipedia/commons/2/2a/Chilika_Lake_Birds.jpg",
 
   // Jammu & Kashmir
-  jk: "https://images.unsplash.com/photo-1566121318535-649033f7c463?auto=format&fit=crop&w=800&q=80",
-  dalLake: "https://images.unsplash.com/photo-1566121318535-649033f7c463?auto=format&fit=crop&w=800&q=80",
-  gulmarg: "https://images.unsplash.com/photo-1596760411317-0245037c7680?auto=format&fit=crop&w=800&q=80",
-  pangong: "https://images.unsplash.com/photo-1598324422619-35070f64c123?auto=format&fit=crop&w=800&q=80",
+  jk: "https://upload.wikimedia.org/wikipedia/commons/0/03/Dal_Lake_Srinagar.jpg",
+  dalLake: "https://upload.wikimedia.org/wikipedia/commons/0/03/Dal_Lake_Srinagar.jpg",
+  gulmarg: "https://upload.wikimedia.org/wikipedia/commons/7/70/Gulmarg_Kashmir.jpg",
+  pangong: "https://upload.wikimedia.org/wikipedia/commons/1/17/Pangong_Lake_Ladakh.jpg",
 
   // Andaman & Nicobar
-  andaman: "https://images.unsplash.com/photo-1589519160732-57fc4e1741a4?auto=format&fit=crop&w=800&q=80",
-  radhanagar: "https://images.unsplash.com/photo-1589519160732-57fc4e1741a4?auto=format&fit=crop&w=800&q=80",
-  cellularJail: "https://images.unsplash.com/photo-1589308078059-be1415eab4c3?auto=format&fit=crop&w=800&q=80"
+  andaman: "https://upload.wikimedia.org/wikipedia/commons/0/0e/Radhanagar_Beach_Havelock.jpg",
+  radhanagar: "https://upload.wikimedia.org/wikipedia/commons/0/0e/Radhanagar_Beach_Havelock.jpg",
+  cellularJail: "https://upload.wikimedia.org/wikipedia/commons/5/50/Cellular_Jail_Andaman.jpg"
 };
 
 export const FALLBACK = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='800' height='400'%3E%3Crect width='800' height='400' fill='%23e5e7eb'/%3E%3Ctext x='400' y='200' text-anchor='middle' dominant-baseline='middle' font-family='sans-serif' font-size='24' fill='%239ca3af'%3EImage Loading...%3C/text%3E%3C/svg%3E";

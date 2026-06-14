@@ -1,0 +1,55 @@
+{
+  "entities": {
+    "TravelClient": {
+      "title": "TravelClient",
+      "description": "Stored user/traveler profiles in Travel Bharat",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier of the traveler user"
+        },
+        "name": {
+          "type": "string",
+          "description": "Display name of the traveler"
+        },
+        "email": {
+          "type": "string",
+          "description": "Email address of the traveler"
+        },
+        "interest": {
+          "type": "string",
+          "description": "Travel vibe / category interest (e.g., Heritage, Nature, Religious, Adventure, All)"
+        },
+        "budget": {
+          "type": "string",
+          "description": "Budget scale (e.g., Eco-friendly, Comfort, Luxury)"
+        },
+        "companion": {
+          "type": "string",
+          "description": "Companion mode (e.g., Solo Traveller, Couple, Family, Group Tour)"
+        },
+        "loginMethod": {
+          "type": "string",
+          "description": "Authentication method used (e.g., Email, Google, Facebook, Signup)"
+        },
+        "phone": {
+          "type": "string",
+          "description": "Optional contact number of the traveler"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Account creation timestamp"
+        }
+      },
+      "required": ["id", "name", "email", "interest", "budget", "companion"]
+    }
+  },
+  "firestore": {
+    "users/{userId}": {
+      "schema": "TravelClient",
+      "description": "Collection of traveler profiles"
+    }
+  }
+}

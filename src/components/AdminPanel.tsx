@@ -3,10 +3,12 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { useState } from "react";
-import { X, Plus, Trash2, Search, Key, Shield, Columns, MapPin, Eye, CheckCircle, Pencil, ArrowLeft, AlertTriangle } from "lucide-react";
+import { useState, useEffect } from "react";
+import { X, Plus, Trash2, Search, Key, Shield, Columns, MapPin, Eye, CheckCircle, Pencil, ArrowLeft, AlertTriangle, Users } from "lucide-react";
 import { Place } from "../types";
 import { catColors, FALLBACK } from "../data";
+import { db, handleFirestoreError, OperationType } from "../firebase";
+import { collection, doc, setDoc, deleteDoc, onSnapshot } from "firebase/firestore";
 
 interface AdminPanelProps {
   onClose: () => void;
@@ -27,9 +29,88 @@ export default function AdminPanel({
   onDeletePlace,
   onUpdatePlace
 }: AdminPanelProps) {
-  const [tab, setTab] = useState<"add" | "manage" | "password">("add");
+  const [tab, setTab] = useState<"add" | "manage" | "users" | "password">("add");
   const [msg, setMsg] = useState("");
   const [search, setSearch] = useState("");
+
+  const [usersList, setUsersList] = useState<any[]>(() => {
+    const raw = localStorage.getItem("travelbharat_all_users");
+    if (!raw) {
+      const defaults = [
+        {
+          id: "usr-1",
+          name: "Aarav Sharma",
+          email: "aarav@gmail.com",
+          interest: "Heritage",
+          budget: "Luxury",
+          companion: "Family",
+          loginMethod: "Google",
+          phone: "",
+          createdAt: new Date(Date.now() - 3 * 86400000).toISOString()
+        },
+        {
+          id: "usr-2",
+          name: "Priya Patel",
+          email: "priya.patel@yahoo.com",
+          interest: "Nature",
+          budget: "Eco-friendly",
+          companion: "Solo Traveller",
+          loginMethod: "Email",
+          phone: "",
+          createdAt: new Date(Date.now() - 2 * 86400000).toISOString()
+        },
+        {
+          id: "usr-3",
+          name: "Devendra Singh",
+          email: "devendra@bharat.in",
+          interest: "Religious",
+          budget: "Comfort",
+          companion: "Group Tour",
+          loginMethod: "Mobile",
+          phone: "+91 98765 43210",
+          createdAt: new Date(Date.now() - 1 * 86400000).toISOString()
+        },
+        {
+          id: "usr-4",
+          name: "Neha Kapoor",
+          email: "neha.kapoor@gmail.com",
+          interest: "Adventure",
+          budget: "Comfort",
+          companion: "Couple",
+          loginMethod: "Facebook",
+          phone: "",
+          createdAt: new Date().toISOString()
+        }
+      ];
+      localStorage.setItem("travelbharat_all_users", JSON.stringify(defaults));
+      return defaults;
+    }
+    try {
+      return JSON.parse(raw);
+    } catch (e) {
+      return [];
+    }
+  });
+
+  const [editingUser, setEditingUser] = useState<any | null>(null);
+  const [userEditForm, setUserEditForm] = useState<any | null>(null);
+  const [userSearchQuery, setUserSearchQuery] = useState("");
+
+  useEffect(() => {
+    const unsubscribe = onSnapshot(collection(db, "users"), (snapshot) => {
+      const dbUsers: any[] = [];
+      snapshot.forEach((doc) => {
+        dbUsers.push(doc.data());
+      });
+      if (dbUsers.length > 0) {
+        setUsersList(dbUsers);
+        localStorage.setItem("travelbharat_all_users", JSON.stringify(dbUsers));
+      }
+    }, (err) => {
+      console.error("Firestore user synchronizer in Admin panel errored: ", err);
+    });
+    return () => unsubscribe();
+  }, []);
   const [editingPlace, setEditingPlace] = useState<Place | null>(null);
   const [editForm, setEditForm] = useState<Place | null>(null);
 
@@ -159,6 +240,69 @@ export default function AdminPanel({
     showFlash("✅ Password updated successfully!");
   };
 
+  const handleSaveUserEdit = async () => {
+    if (!userEditForm) return;
+    if (!userEditForm.name.trim() || !userEditForm.email.trim()) {
+      showFlash("❌ User Name and Email address are required.");
+      return;
+    }
+
+    try {
+      await setDoc(doc(db, "users", userEditForm.id), userEditForm);
+
+      // Update active traveler session if they edited themselves
+      const activeClientRaw = localStorage.getItem("travelbharat_client_info");
+      if (activeClientRaw) {
+        const activeClient = JSON.parse(activeClientRaw);
+        if (activeClient.id === userEditForm.id) {
+          localStorage.setItem("travelbharat_client_info", JSON.stringify(userEditForm));
+        }
+      }
+
+      showFlash("✅ User profile modified successfully!");
+      setEditingUser(null);
+      setUserEditForm(null);
+    } catch (e) {
+      handleFirestoreError(e, OperationType.UPDATE, `users/${userEditForm.id}`);
+      showFlash("❌ Failed to update profile in database.");
+    }
+  };
+
+  const handleDeleteUser = async (userId: string) => {
+    const targetUser = usersList.find(u => u.id === userId);
+    const displayName = targetUser ? targetUser.name : "this user";
+    if (window.confirm(`Are you sure you want to delete the traveler profile: ${displayName}? This will log them out if active.`)) {
+      try {
+        await deleteDoc(doc(db, "users", userId));
+
+        // Clear session if active
+        const activeClientRaw = localStorage.getItem("travelbharat_client_info");
+        if (activeClientRaw) {
+          const activeClient = JSON.parse(activeClientRaw);
+          if (activeClient.id === userId) {
+            localStorage.removeItem("travelbharat_client_info");
+            window.location.reload();
+          }
+        }
+        showFlash("✅ User deleted successfully!");
+      } catch (e) {
+        handleFirestoreError(e, OperationType.DELETE, `users/${userId}`);
+        showFlash("❌ Failed to delete user from database.");
+      }
+    }
+  };
+
+  const filteredUsers = usersList.filter((u) => {
+    const q = userSearchQuery.toLowerCase();
+    return (
+      u.name.toLowerCase().includes(q) ||
+      u.email.toLowerCase().includes(q) ||
+      (u.interest && u.interest.toLowerCase().includes(q)) ||
+      (u.loginMethod && u.loginMethod.toLowerCase().includes(q)) ||
+      (u.phone && u.phone.includes(q))
+    );
+  });
+
   const filteredPlaces = placesData.filter((p) => {
     const q = search.toLowerCase();
     return (
@@ -199,10 +343,11 @@ export default function AdminPanel({
           </div>
 
           {/* Tab Selector */}
-          <div className="flex gap-1.5 p-1 bg-slate-200/50 rounded-xl">
+          <div className="flex gap-1 p-1 bg-slate-200/50 rounded-xl overflow-x-auto">
             {[
               { id: "add", label: "Add Place", icon: Plus },
               { id: "manage", label: `Manage (${filteredPlaces.length})`, icon: Columns },
+              { id: "users", label: `Users (${usersList.length})`, icon: Users },
               { id: "password", label: "Security", icon: Key }
             ].map((t) => {
               const Icon = t.icon;
@@ -674,6 +819,225 @@ export default function AdminPanel({
                     );
                   })
                 )}
+              </div>
+            </div>
+          )}
+
+          {/* USER REGISTRY TAB */}
+          {tab === "users" && editingUser && userEditForm && (
+            <div className="space-y-4">
+              <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+                <button
+                  onClick={() => {
+                    setEditingUser(null);
+                    setUserEditForm(null);
+                  }}
+                  className="flex items-center gap-1.5 text-xs font-bold text-slate-600 hover:text-slate-950 transition-colors uppercase tracking-wider bg-transparent cursor-pointer border-none"
+                >
+                  <ArrowLeft className="w-4 h-4" />
+                  <span>Back to User Registry</span>
+                </button>
+                <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">Edit Traveler Profile</span>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block mb-1.5">Traveler Name *</label>
+                  <input 
+                    className={inputStyle} 
+                    value={userEditForm.name || ""} 
+                    onChange={(e) => setUserEditForm({ ...userEditForm, name: e.target.value })} 
+                  />
+                </div>
+                <div>
+                  <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block mb-1.5">Email address *</label>
+                  <input 
+                    type="email"
+                    className={inputStyle} 
+                    value={userEditForm.email || ""} 
+                    onChange={(e) => setUserEditForm({ ...userEditForm, email: e.target.value })} 
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block mb-1.5">Travel Vibe Interest</label>
+                  <select 
+                    className={inputStyle} 
+                    value={userEditForm.interest || "All"}
+                    onChange={(e) => setUserEditForm({ ...userEditForm, interest: e.target.value })}
+                  >
+                    <option value="All">All / Guest</option>
+                    <option value="Heritage">Heritage</option>
+                    <option value="Nature">Nature</option>
+                    <option value="Religious">Religious</option>
+                    <option value="Adventure">Adventure</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block mb-1.5">Companion Mode</label>
+                  <select 
+                    className={inputStyle} 
+                    value={userEditForm.companion || "Solo Traveller"}
+                    onChange={(e) => setUserEditForm({ ...userEditForm, companion: e.target.value })}
+                  >
+                    <option value="Solo Traveller">Solo Traveller</option>
+                    <option value="Couple">Couple</option>
+                    <option value="Family">Family</option>
+                    <option value="Group Tour">Group Tour</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block mb-1.5">Budget Scale</label>
+                  <select 
+                    className={inputStyle} 
+                    value={userEditForm.budget || "Comfort"}
+                    onChange={(e) => setUserEditForm({ ...userEditForm, budget: e.target.value })}
+                  >
+                    <option value="Eco-friendly">Eco-friendly</option>
+                    <option value="Comfort">Comfort</option>
+                    <option value="Luxury">Luxury</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block mb-1.5">Mobile Phone (Optional)</label>
+                  <input 
+                    className={inputStyle} 
+                    placeholder="e.g. +91 90000 00000"
+                    value={userEditForm.phone || ""} 
+                    onChange={(e) => setUserEditForm({ ...userEditForm, phone: e.target.value })} 
+                  />
+                </div>
+              </div>
+
+              <div className="bg-slate-50 p-3 rounded-xl border border-slate-100 grid grid-cols-2 gap-4 text-xs">
+                <div>
+                  <span className="text-[10px] font-bold text-slate-400 block uppercase mb-0.5">Authentication Provider</span>
+                  <span className="font-semibold text-slate-700 capitalize">{userEditForm.loginMethod || "Signup"}</span>
+                </div>
+                <div>
+                  <span className="text-[10px] font-bold text-slate-400 block uppercase mb-0.5">Account Created On</span>
+                  <span className="font-semibold text-slate-700">
+                    {userEditForm.createdAt ? new Date(userEditForm.createdAt).toLocaleDateString() : "Just Now"}
+                  </span>
+                </div>
+              </div>
+
+              <div className="flex gap-2 text-xs pt-1.5">
+                <button
+                  onClick={handleSaveUserEdit}
+                  className="flex-1 py-3 bg-slate-900 hover:bg-slate-800 text-white font-bold rounded-xl cursor-pointer"
+                >
+                  Save Traveler Profile
+                </button>
+                <button
+                  onClick={() => {
+                    setEditingUser(null);
+                    setUserEditForm(null);
+                  }}
+                  className="flex-grow-0 px-6 py-3 bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold rounded-xl pointer-events-auto cursor-pointer"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          )}
+
+          {tab === "users" && !editingUser && (
+            <div className="space-y-4">
+              <div className="relative">
+                <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                <input 
+                  className={`${inputStyle} pl-10`} 
+                  placeholder="Search travelers by name, email, interests..." 
+                  value={userSearchQuery} 
+                  onChange={(e) => setUserSearchQuery(e.target.value)} 
+                />
+              </div>
+
+              <div className="space-y-2.5 max-h-[440px] overflow-y-auto pr-1">
+                {filteredUsers.length === 0 ? (
+                  <p className="text-sm text-slate-400 text-center py-6">No matching traveler records found.</p>
+                ) : (
+                  filteredUsers.map((u) => {
+                    const avatarColor = u.interest === "Heritage" ? "bg-purple-100 text-purple-700" :
+                                        u.interest === "Nature" ? "bg-emerald-100 text-emerald-700" :
+                                        u.interest === "Religious" ? "bg-orange-100 text-orange-700" :
+                                        u.interest === "Adventure" ? "bg-sky-100 text-sky-700" :
+                                        "bg-amber-100 text-amber-700";
+                    return (
+                      <div 
+                        key={u.id}
+                        className="flex items-start gap-3.5 p-3.5 bg-slate-50 border border-slate-100 rounded-xl hover:border-slate-200 transition-colors"
+                      >
+                        {/* Avatar */}
+                        <div className={`w-10 h-10 rounded-xl ${avatarColor} font-black text-sm flex items-center justify-center flex-shrink-0 border border-white`}>
+                          {u.name ? u.name.charAt(0).toUpperCase() : "U"}
+                        </div>
+
+                        {/* Text fields */}
+                        <div className="flex-grow min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="text-sm font-bold text-slate-800 truncate">{u.name}</span>
+                            <span className="text-[9px] bg-slate-200/60 font-bold px-1.5 py-0.5 rounded text-slate-600 uppercase tracking-wide">
+                              {u.loginMethod || "Email"}
+                            </span>
+                          </div>
+                          
+                          <p className="text-xs text-slate-500 truncate mt-0.5">{u.email}</p>
+                          
+                          <div className="flex items-center gap-1.5 flex-wrap text-[11px] text-slate-500 mt-1.5 pt-1.5 border-t border-slate-200/50">
+                            <span className="bg-white px-1.5 py-0.5 rounded border border-slate-100 font-medium">✨ {u.interest}</span>
+                            <span className="bg-white px-1.5 py-0.5 rounded border border-slate-100 font-medium">💰 {u.budget}</span>
+                            <span className="bg-white px-1.5 py-0.5 rounded border border-slate-100 font-medium">👥 {u.companion}</span>
+                            {u.phone && <span className="bg-emerald-50 text-emerald-700 px-1.5 py-0.5 rounded border border-emerald-100 font-semibold text-[10px]">📞 {u.phone}</span>}
+                          </div>
+                        </div>
+
+                        {/* Actions */}
+                        <div className="flex items-center gap-1 flex-shrink-0 self-start pt-1">
+                          <button
+                            onClick={() => {
+                              setEditingUser(u);
+                              setUserEditForm({ ...u });
+                            }}
+                            className="p-1.5 hover:bg-slate-200 text-slate-500 hover:text-slate-900 rounded-lg transition-colors cursor-pointer border-none bg-transparent"
+                            title="Edit User Profile"
+                          >
+                            <Pencil className="w-3.5 h-3.5" />
+                          </button>
+                          <button
+                            onClick={() => handleDeleteUser(u.id)}
+                            className="p-1.5 hover:bg-red-50 text-slate-400 hover:text-red-500 rounded-lg transition-colors cursor-pointer border-none bg-transparent"
+                            title="Delete User"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+
+              {/* Stats & Tools footer */}
+              <div className="p-3 bg-slate-100/55 border border-slate-200/50 rounded-xl text-[10.5px] text-slate-500 flex justify-between items-center">
+                <span>Active Database: <strong>{usersList.length} User(s)</strong></span>
+                <button
+                  onClick={() => {
+                    if (window.confirm("Restore Default Seed Travelers? This will reset all traveler accounts.")) {
+                      localStorage.removeItem("travelbharat_all_users");
+                      window.location.reload();
+                    }
+                  }}
+                  className="hover:text-amber-600 font-bold bg-transparent border-none cursor-pointer p-0 uppercase text-[10px]"
+                >
+                  🔄 Reset Seed Accounts
+                </button>
               </div>
             </div>
           )}

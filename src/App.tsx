@@ -20,13 +20,25 @@ import {
   Bookmark,
   Calendar,
   Layers3,
-  Heart
+  Heart,
+  User,
+  Mail,
+  Plane,
+  Coins,
+  History,
+  Users,
+  Smile,
+  LogOut,
+  SlidersHorizontal,
+  ThumbsUp
 } from "lucide-react";
+import { motion, AnimatePresence } from "motion/react";
 import { indiaData, categories, regions, catColors, FALLBACK } from "./data";
 import { Place, StateData } from "./types";
 import PlaceCard from "./components/PlaceCard";
 import PlaceModal from "./components/PlaceModal";
 import AdminPanel from "./components/AdminPanel";
+import ClientOnboarding, { TravelClient } from "./components/ClientOnboarding";
 
 export default function App() {
   const [view, setView] = useState<"home" | "explore" | "state" | "places">("home");
@@ -51,6 +63,15 @@ export default function App() {
 
   // Mobile navigation trigger
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  // Client Onboarding Profiler state
+  const [clientInfo, setClientInfo] = useState<TravelClient | null>(() => {
+    const stored = localStorage.getItem("travelbharat_client_info");
+    return stored ? JSON.parse(stored) : null;
+  });
+
+  // Welcome banner visibility helper
+  const [showWelcomeBanner, setShowWelcomeBanner] = useState(false);
 
   // Dynamic calculations of all places in current database state
   const allPlaces = useMemo(() => {
@@ -181,6 +202,13 @@ export default function App() {
     );
   }, [selectedState, filterCategory]);
 
+  const clientPlaces = useMemo(() => {
+    if (!clientInfo) return [];
+    const interest = clientInfo.interest;
+    if (interest === "All") return allPlaces.slice(0, 4);
+    return allPlaces.filter((p) => p.category.toLowerCase() === interest.toLowerCase());
+  }, [allPlaces, clientInfo]);
+
   const handleAdminLoginSubmit = () => {
     if (adminPass === adminPassword) {
       setShowAdmin(true);
@@ -192,7 +220,20 @@ export default function App() {
     }
   };
 
-  const activeTransitionStyle = "transition-all duration-300";
+  const handleOnboardSubmit = (client: TravelClient) => {
+    localStorage.setItem("travelbharat_client_info", JSON.stringify(client));
+    setClientInfo(client);
+    setShowWelcomeBanner(true);
+    
+    // Auto-filter homepage matching their core interests
+    if (client.interest && client.interest !== "All") {
+      setFilterCategory(client.interest);
+    }
+  };
+
+  if (!clientInfo) {
+    return <ClientOnboarding onComplete={handleOnboardSubmit} />;
+  }
 
   return (
     <div className="font-sans min-h-screen bg-slate-50/60 text-slate-800 antialiased flex flex-col justify-between">
@@ -242,6 +283,26 @@ export default function App() {
                 );
               })}
               
+              {clientInfo && (
+                <div className="flex items-center gap-2 bg-white/5 border border-white/10 px-3 py-1.5 rounded-xl text-xs text-slate-300">
+                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                  <span>
+                    Swagatam, <strong className="text-white font-bold">{clientInfo.name}</strong> 
+                    <span className="text-amber-400 font-semibold ml-1">({clientInfo.interest})</span>
+                  </span>
+                  <button
+                    onClick={() => {
+                      localStorage.removeItem("travelbharat_client_info");
+                      setClientInfo(null);
+                    }}
+                    title="Exit Session"
+                    className="p-1 hover:bg-white/15 hover:text-red-400 text-slate-400 rounded-lg transition-colors cursor-pointer ml-1 bg-transparent border-none"
+                  >
+                    <LogOut className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              )}
+
               <div className="w-px h-5 bg-white/10 mx-2" />
 
               <button
@@ -269,6 +330,25 @@ export default function App() {
         {/* Mobile menu drawer */}
         {mobileMenuOpen && (
           <div className="md:hidden border-t border-white/5 bg-slate-900 px-4 py-4 space-y-2 animate-in slide-in-from-top-4 duration-200">
+            {clientInfo && (
+              <div className="bg-white/5 border border-white/10 rounded-xl p-3 flex items-center justify-between text-xs text-slate-300 mb-2">
+                <div>
+                  <p className="text-[10px] text-slate-500 uppercase tracking-wider font-bold">Traveller</p>
+                  <p className="text-white font-bold">{clientInfo.name}</p>
+                  <p className="text-amber-400 font-semibold">{clientInfo.interest}</p>
+                </div>
+                <button
+                  onClick={() => {
+                    localStorage.removeItem("travelbharat_client_info");
+                    setClientInfo(null);
+                    setMobileMenuOpen(false);
+                  }}
+                  className="px-2.5 py-1.5 bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/25 text-rose-300 font-bold rounded-lg cursor-pointer"
+                >
+                  Exit
+                </button>
+              </div>
+            )}
             {[
               { id: "home", label: "Home", icon: Compass },
               { id: "explore", label: "Explore States", icon: MapPin },
@@ -321,12 +401,29 @@ export default function App() {
                 </div>
                 
                 <h1 className="text-4xl sm:text-5xl lg:text-6.5xl font-black text-white leading-none tracking-tight text-balance">
-                  Explore The Timeless<br />
-                  Heritage of <span className="text-amber-400">Bharat</span>
+                  {clientInfo ? (
+                    <>
+                      Swagatam, <span className="text-amber-400">{clientInfo.name}</span>!<br />
+                      Your Curated Bharat Odyssey
+                    </>
+                  ) : (
+                    <>
+                      Explore The Timeless<br />
+                      Heritage of <span className="text-amber-400">Bharat</span>
+                    </>
+                  )}
                 </h1>
                 
                 <p className="text-base sm:text-lg text-slate-300/90 leading-relaxed font-normal max-w-2xl mx-auto text-balance">
-                  Embark on a grand virtual tour across <strong className="text-white font-medium">{states.length} unique states</strong> and <strong className="text-white font-medium">{allPlaces.length}+ pristine destinations</strong>. Discover monumental royal forts, golden sands, green tea steps, and spiritual ghats.
+                  {clientInfo ? (
+                    <>
+                      Welcome to your personalized travel guide. We have configured your itinerary suited for a <span className="text-amber-400 font-bold">{clientInfo.interest}</span> seeker traveling in <span className="text-amber-400 font-bold">{clientInfo.companion}</span> mode, tuned to a <span className="text-amber-400 font-bold">{clientInfo.budget}</span> budget scale.
+                    </>
+                  ) : (
+                    <>
+                      Embark on a grand virtual tour across <strong className="text-white font-medium">{states.length} unique states</strong> and <strong className="text-white font-medium">{allPlaces.length}+ pristine destinations</strong>. Discover monumental royal forts, golden sands, green tea steps, and spiritual ghats.
+                    </>
+                  )}
                 </p>
 
                 <div className="flex items-center justify-center gap-3 pt-4 flex-wrap">
@@ -374,6 +471,82 @@ export default function App() {
                 })}
               </div>
             </div>
+
+            {/* Custom Welcome Banner Alert notification if showing */}
+            {showWelcomeBanner && (
+              <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8">
+                <div className="p-5 bg-gradient-to-r from-emerald-500/10 via-teal-500/15 to-emerald-500/10 border border-emerald-500/30 rounded-2xl relative overflow-hidden shadow-sm animate-in zoom-in-95 duration-300">
+                  <div className="absolute top-0 right-0 p-8 transform rotate-12 opacity-15 pointer-events-none text-6xl">✨</div>
+                  <div className="flex items-start gap-4">
+                    <div className="w-10 h-10 rounded-xl bg-emerald-500 text-white flex items-center justify-center text-lg shadow-md shadow-emerald-500/10 flex-shrink-0">
+                      <ThumbsUp className="w-5 h-5 fill-white/20" />
+                    </div>
+                    <div>
+                      <h4 className="text-sm font-extrabold text-slate-900">Personalized Bharat Compendium Synced! 🎯</h4>
+                      <p className="text-xs text-slate-600 mt-1 leading-relaxed">
+                        Namaste, <strong className="text-slate-855 text-slate-800 font-bold">{clientInfo?.name}</strong>! We have customized your TravelBharat portal with your <strong className="text-emerald-700 font-bold">{clientInfo?.interest}</strong> styling options under a <strong className="text-emerald-700 font-bold">{clientInfo?.budget}</strong> budget tier. Explore recommendations matching your traveler footprint!
+                      </p>
+                    </div>
+                  </div>
+                  <button 
+                    onClick={() => setShowWelcomeBanner(false)}
+                    className="absolute top-3 right-3 text-slate-400 hover:text-slate-600 p-1 rounded-lg bg-transparent border-none cursor-pointer"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Section: Your Personalized Matches Carousel */}
+            {clientInfo && clientPlaces.length > 0 && (
+              <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-16 pb-6 space-y-6 animate-in slide-in-from-bottom-6 duration-500">
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-2">
+                  <div>
+                    <span className="text-[10px] bg-amber-400/20 border border-amber-400/30 text-amber-800 px-3 py-1 rounded-full uppercase tracking-wider font-extrabold inline-block mb-2 shadow-sm">
+                      ✨ CURATED MATCHES BASED ON YOUR INTERESTS
+                    </span>
+                    <h2 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
+                      Selected For You, {clientInfo.name}
+                    </h2>
+                    <p className="text-sm text-slate-500">
+                      Highest-rated {clientInfo.interest} attractions matching your {clientInfo.budget} budget and companion preferences
+                    </p>
+                  </div>
+                  <button 
+                    onClick={() => {
+                      setFilterCategory(clientInfo.interest);
+                      setView("places");
+                    }}
+                    className="text-xs font-bold text-amber-600 hover:text-amber-700 uppercase tracking-widest flex items-center gap-1 bg-transparent border-none cursor-pointer p-0"
+                  >
+                    <span>View all matches</span>
+                    <ChevronRight className="w-4 h-4" />
+                  </button>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                  {clientPlaces.slice(0, 4).map((p) => {
+                    return (
+                      <div key={p.id} className="relative group/personalized">
+                        {/* Golden Match Badge overlay */}
+                        <div className="absolute top-3 right-[112px] z-20 bg-gradient-to-r from-amber-500 to-orange-500 text-slate-950 text-[9px] font-black tracking-wider px-2.5 py-1 rounded-full shadow-md border border-amber-300">
+                          98% MATCH
+                        </div>
+                        <PlaceCard 
+                          place={p} 
+                          state={p.state as StateData} 
+                          onClick={(pl, st) => {
+                            setSelectedPlace(pl);
+                            setSelectedPlaceState(st);
+                          }} 
+                        />
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
 
             {/* Section: Featured Top-Rated Attractions */}
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 space-y-8">

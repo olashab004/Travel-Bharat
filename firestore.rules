@@ -1,0 +1,58 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Capture-all deny gate
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Helper functions
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    // Validation for TravelClient profile
+    function isValidTravelClient(data) {
+      return data.keys().hasAll(['id', 'name', 'email', 'interest', 'budget', 'companion']) 
+        && data.keys().size() <= 9
+        && data.id is string && data.id.size() <= 128
+        && data.name is string && data.name.size() > 0 && data.name.size() <= 100
+        && data.email is string && data.email.size() > 0 && data.email.size() <= 200
+        && data.interest is string && data.interest.size() <= 50
+        && data.budget is string && data.budget.size() <= 50
+        && data.companion is string && data.companion.size() <= 50
+        && (!data.keys().hasAny(['phone']) || (data.phone is string && data.phone.size() <= 30))
+        && (!data.keys().hasAny(['loginMethod']) || (data.loginMethod is string && data.loginMethod.size() <= 50))
+        && (!data.keys().hasAny(['createdAt']) || (data.createdAt is string || data.createdAt is timestamp));
+    }
+
+    match /users/{userId} {
+      allow read, list: if isSignedIn();
+      
+      allow create: if isSignedIn() 
+        && isValidId(userId) 
+        && isValidTravelClient(request.resource.data);
+
+      allow update: if isSignedIn()
+        && isValidId(userId)
+        && isValidTravelClient(request.resource.data)
+        && (
+          isOwner(userId) || 
+          // Allow administrative updates
+          request.auth.token.email_verified == true
+        );
+
+      allow delete: if isSignedIn() 
+        && (isOwner(userId) || request.auth.token.email_verified == true);
+    }
+  }
+}
