@@ -171,31 +171,56 @@ export default function ClientOnboarding({ onComplete }: ClientOnboardProps) {
   const [loginEmail, setLoginEmail] = useState("");
   const [modalType, setModalType] = useState<"none" | "google" | "facebook" | "twitterx" | "mobile" | "email_signup_otp" | "email_login_otp">("none");
 
-  // Device-specific local Google account profiles
+  // Device-specific local accounts
   const [localGoogleAccounts, setLocalGoogleAccounts] = useState<Array<{ name: string; email: string; id: string }>>([]);
   const [isAddingGoogleAccount, setIsAddingGoogleAccount] = useState(false);
   const [newGoogleEmail, setNewGoogleEmail] = useState("");
   const [newGoogleName, setNewGoogleName] = useState("");
 
+  const [localFacebookAccounts, setLocalFacebookAccounts] = useState<Array<{ name: string; email: string; id: string }>>([]);
+  const [isAddingFacebookAccount, setIsAddingFacebookAccount] = useState(false);
+  const [newFacebookEmail, setNewFacebookEmail] = useState("");
+  const [newFacebookName, setNewFacebookName] = useState("");
+
+  const [localTwitterXAccounts, setLocalTwitterXAccounts] = useState<Array<{ name: string; email: string; id: string }>>([]);
+  const [isAddingTwitterXAccount, setIsAddingTwitterXAccount] = useState(false);
+  const [newTwitterXEmail, setNewTwitterXEmail] = useState("");
+  const [newTwitterXName, setNewTwitterXName] = useState("");
+
   useEffect(() => {
-    // Load local Google accounts dynamically whenever modalType transitions to "google"
-    const stored = localStorage.getItem("travelbharat_local_google_accounts");
-    let currentAccounts = [];
-    if (stored) {
-      try {
-        currentAccounts = JSON.parse(stored);
-        setLocalGoogleAccounts(currentAccounts);
-      } catch (e) {
-        setLocalGoogleAccounts([]);
+    // Load local accounts dynamically whenever modalType transitions
+    const loadAccounts = (key: string, setter: any) => {
+      const stored = localStorage.getItem(key);
+      if (stored) {
+        try {
+          const parsed = JSON.parse(stored);
+          setter(parsed);
+          return parsed;
+        } catch (e) {
+          setter([]);
+        }
+      } else {
+        setter([]);
       }
-    } else {
-      setLocalGoogleAccounts([]);
-    }
+      return [];
+    };
+
+    const gAccs = loadAccounts("travelbharat_local_google_accounts", setLocalGoogleAccounts);
+    const fbAccs = loadAccounts("travelbharat_local_facebook_accounts", setLocalFacebookAccounts);
+    const twAccs = loadAccounts("travelbharat_local_twitterx_accounts", setLocalTwitterXAccounts);
 
     if (modalType === "google") {
-      setIsAddingGoogleAccount(currentAccounts.length === 0);
+      setIsAddingGoogleAccount(gAccs.length === 0);
       setNewGoogleEmail("");
       setNewGoogleName("");
+    } else if (modalType === "facebook") {
+      setIsAddingFacebookAccount(fbAccs.length === 0);
+      setNewFacebookEmail("");
+      setNewFacebookName("");
+    } else if (modalType === "twitterx") {
+      setIsAddingTwitterXAccount(twAccs.length === 0);
+      setNewTwitterXEmail("");
+      setNewTwitterXName("");
     }
   }, [modalType]);
 
@@ -253,8 +278,16 @@ export default function ClientOnboarding({ onComplete }: ClientOnboardProps) {
     }
   };
 
-  // Finalize signup creation with OTP verification
+  // Finalize signup creation (directly without OTP)
   const handleSignupSubmit = async () => {
+    setError("");
+    const cleanEmail = form.email.trim().toLowerCase();
+    const exists = firebaseUsersList.some(u => u.email.toLowerCase() === cleanEmail);
+    if (exists) {
+      setError("This email address is already registered. Please go to the 'Sign In' tab instead.");
+      return;
+    }
+
     const newUser: TravelClient = {
       id: "usr-" + Date.now(),
       name: form.name.trim(),
@@ -266,16 +299,18 @@ export default function ClientOnboarding({ onComplete }: ClientOnboardProps) {
       createdAt: new Date().toISOString()
     };
 
-    // Generate Verification Code for New Signup Email
-    const code = Math.floor(1000 + Math.random() * 9000).toString();
-    setSimulatedEmailOtp(code);
-    setPendingUser(newUser);
-    setEmailOtpCode("");
-    setError("");
-    setModalType("email_signup_otp");
+    try {
+      // Save authenticated user to Firestore Users database directly
+      await setDoc(doc(db, "users", newUser.id), newUser);
+      setModalType("none");
+      onComplete(newUser);
+    } catch (e) {
+      handleFirestoreError(e, OperationType.CREATE, `users/${newUser.id}`);
+      setError("Failed to record profile in Database. Please try again.");
+    }
   };
 
-  // Handle direct local email login with OTP verification
+  // Handle direct local email login (directly without OTP)
   const handleEmailLogin = async () => {
     if (!loginEmail.trim()) {
       setError("Please type your email address first.");
@@ -287,76 +322,23 @@ export default function ClientOnboarding({ onComplete }: ClientOnboardProps) {
       return;
     }
 
-    const existing = firebaseUsersList.find((u) => u.email.toLowerCase() === loginEmail.trim().toLowerCase());
-    let targetUser: TravelClient;
+    const cleanEmail = loginEmail.trim().toLowerCase();
+    const existing = firebaseUsersList.find((u) => u.email.toLowerCase() === cleanEmail);
 
-    if (existing) {
-      targetUser = { ...existing, loginMethod: "Email" };
-    } else {
-      targetUser = {
-        id: "usr-" + Date.now(),
-        name: loginEmail.split("@")[0].charAt(0).toUpperCase() + loginEmail.split("@")[0].slice(1),
-        email: loginEmail.trim(),
-        interest: "All",
-        budget: "Comfort",
-        companion: "Solo Traveller",
-        loginMethod: "Email",
-        createdAt: new Date().toISOString()
-      };
-    }
-
-    // Generate Verification Code for Login Email
-    const code = Math.floor(1000 + Math.random() * 9000).toString();
-    setSimulatedEmailOtp(code);
-    setPendingUser(targetUser);
-    setEmailOtpCode("");
-    setError("");
-    setModalType("email_login_otp");
-  };
-
-  // Verify dynamic OTP code and write record to Firestore
-  const handleVerifyEmailOtp = async () => {
-    if (emailOtpCode !== simulatedEmailOtp) {
-      setError("Incorrect verification code. Please type the mock simulation code.");
-      return;
-    }
-    if (!pendingUser) {
-      setError("Unexpected verification error. Please retry.");
+    if (!existing) {
+      setError(`No registered TravelBharat account was found for email "${cleanEmail}". Enter a registered email or switch to the "Register & Onboard" tab to create your profile first.`);
       return;
     }
 
-    setError("");
+    const targetUser: TravelClient = { ...existing, loginMethod: "Email" };
+
     try {
-      // Save authenticated user to Firestore Users database
-      await setDoc(doc(db, "users", pendingUser.id), pendingUser);
+      setError("");
       setModalType("none");
-      onComplete(pendingUser);
+      onComplete(targetUser);
     } catch (e) {
-      handleFirestoreError(e, OperationType.CREATE, `users/${pendingUser.id}`);
-      setError("Failed to record profile in Database. Please try again.");
-    }
-  };
-
-  // Handle Instant Mock logins for Facebook and TwitterX
-  const handleSimpleMockLogin = async (method: "Facebook" | "TwitterX") => {
-    setError("");
-    const mockUser: TravelClient = {
-      id: "usr-" + method.toLowerCase() + "-" + Date.now(),
-      name: `${method} Explorer`,
-      email: `${method.toLowerCase()}-traveler@domain-sim.com`,
-      interest: "All",
-      budget: "Comfort",
-      companion: "Solo Traveller",
-      loginMethod: method,
-      createdAt: new Date().toISOString()
-    };
-
-    try {
-      await setDoc(doc(db, "users", mockUser.id), mockUser);
-      onComplete(mockUser);
-    } catch (e) {
-      handleFirestoreError(e, OperationType.CREATE, `users/${mockUser.id}`);
-      onComplete(mockUser);
+      console.error("Direct login failed", e);
+      setError("Failed to sign in. Please try again.");
     }
   };
 
@@ -368,7 +350,14 @@ export default function ClientOnboarding({ onComplete }: ClientOnboardProps) {
       const user = result.user;
       if (!user) return;
 
-      const match = firebaseUsersList.find(u => u.email.toLowerCase() === (user.email || "").toLowerCase());
+      const userEmail = (user.email || "").toLowerCase();
+      const match = firebaseUsersList.find(u => u.email.toLowerCase() === userEmail);
+
+      if (onboardMode === "login" && !match) {
+        setError(`Account not found: "${userEmail}" is not registered. Please switch to the "Register & Onboard" tab to create your personalized profile first.`);
+        return;
+      }
+
       const loggedUser: TravelClient = match ? {
         ...match,
         loginMethod: "Google"
@@ -376,9 +365,9 @@ export default function ClientOnboarding({ onComplete }: ClientOnboardProps) {
         id: user.uid,
         name: user.displayName || user.email?.split("@")[0] || "Google Traveler",
         email: user.email || "",
-        interest: "All",
-        budget: "Comfort",
-        companion: "Solo Traveller",
+        interest: form.interest || "All",
+        budget: form.budget || "Comfort",
+        companion: form.companion || "Solo Traveller",
         loginMethod: "Google",
         createdAt: new Date().toISOString()
       };
@@ -400,7 +389,6 @@ export default function ClientOnboarding({ onComplete }: ClientOnboardProps) {
       onComplete(loggedUser);
     } catch (e: any) {
       console.error("Real Google OAuth login failed: ", e);
-      // Fallback gracefully to our custom dialog without exposing developer raw static accounts
       setModalType("google");
       setError("");
     }
@@ -410,17 +398,24 @@ export default function ClientOnboarding({ onComplete }: ClientOnboardProps) {
   const handleGoogleAutoLogin = async (userName: string, userEmail: string) => {
     try {
       setError("");
-      const match = firebaseUsersList.find(u => u.email.toLowerCase() === userEmail.toLowerCase());
+      const cleanEmail = userEmail.trim().toLowerCase();
+      const match = firebaseUsersList.find(u => u.email.toLowerCase() === cleanEmail);
+
+      if (onboardMode === "login" && !match) {
+        setError(`No registered TravelBharat account was found for Google email "${cleanEmail}". Enter a registered email or switch to "Register & Onboard" tab to create a new profile.`);
+        return;
+      }
+
       const loggedUser: TravelClient = match ? {
         ...match,
         loginMethod: "Google"
       } : {
-        id: "usr-" + userEmail.replace(/[^a-zA-Z0-9]/g, "-") + "-" + Date.now(),
-        name: userName,
-        email: userEmail,
-        interest: "All",
-        budget: "Comfort",
-        companion: "Solo Traveller",
+        id: "usr-" + cleanEmail.replace(/[^a-zA-Z0-9]/g, "-") + "-" + Date.now(),
+        name: userName.trim(),
+        email: cleanEmail,
+        interest: form.interest || "All",
+        budget: form.budget || "Comfort",
+        companion: form.companion || "Solo Traveller",
         loginMethod: "Google",
         createdAt: new Date().toISOString()
       };
@@ -429,8 +424,8 @@ export default function ClientOnboarding({ onComplete }: ClientOnboardProps) {
       try {
         const stored = localStorage.getItem("travelbharat_local_google_accounts");
         const list = stored ? JSON.parse(stored) : [];
-        if (!list.some((acc: any) => acc.email.toLowerCase() === userEmail.toLowerCase())) {
-          list.push({ name: userName, email: userEmail, id: loggedUser.id });
+        if (!list.some((acc: any) => acc.email.toLowerCase() === cleanEmail)) {
+          list.push({ name: userName.trim(), email: cleanEmail, id: loggedUser.id });
           localStorage.setItem("travelbharat_local_google_accounts", JSON.stringify(list));
         }
       } catch (e) {
@@ -443,6 +438,100 @@ export default function ClientOnboarding({ onComplete }: ClientOnboardProps) {
     } catch (e: any) {
       console.error("Google Auto login failed: ", e);
       setError(`Google Sign In failed: ${e.message || e}`);
+    }
+  };
+
+  // Handle Facebook Auth Selection
+  const handleFacebookAutoLogin = async (userName: string, userEmail: string) => {
+    try {
+      setError("");
+      const cleanEmail = userEmail.trim().toLowerCase();
+      const match = firebaseUsersList.find(u => u.email.toLowerCase() === cleanEmail);
+
+      if (onboardMode === "login" && !match) {
+        setError(`No registered TravelBharat account was found for Facebook email "${cleanEmail}". Enter a registered email or register under "Register & Onboard".`);
+        return;
+      }
+
+      const loggedUser: TravelClient = match ? {
+        ...match,
+        loginMethod: "Facebook"
+      } : {
+        id: "usr-fb-" + cleanEmail.replace(/[^a-zA-Z0-9]/g, "-") + "-" + Date.now(),
+        name: userName.trim(),
+        email: cleanEmail,
+        interest: form.interest || "All",
+        budget: form.budget || "Comfort",
+        companion: form.companion || "Solo Traveller",
+        loginMethod: "Facebook",
+        createdAt: new Date().toISOString()
+      };
+
+      // Store in verified device local accounts so users see their own accounts next time on this device
+      try {
+        const stored = localStorage.getItem("travelbharat_local_facebook_accounts");
+        const list = stored ? JSON.parse(stored) : [];
+        if (!list.some((acc: any) => acc.email.toLowerCase() === cleanEmail)) {
+          list.push({ name: userName.trim(), email: cleanEmail, id: loggedUser.id });
+          localStorage.setItem("travelbharat_local_facebook_accounts", JSON.stringify(list));
+        }
+      } catch (e) {
+        console.error("Local account save failed", e);
+      }
+
+      await setDoc(doc(db, "users", loggedUser.id), loggedUser);
+      setModalType("none");
+      onComplete(loggedUser);
+    } catch (e: any) {
+      console.error("Facebook login failed: ", e);
+      setError(`Facebook Sign In failed: ${e.message || e}`);
+    }
+  };
+
+  // Handle Twitter/X Auth Selection
+  const handleTwitterXAutoLogin = async (userName: string, userEmail: string) => {
+    try {
+      setError("");
+      const cleanEmail = userEmail.trim().toLowerCase();
+      const match = firebaseUsersList.find(u => u.email.toLowerCase() === cleanEmail);
+
+      if (onboardMode === "login" && !match) {
+        setError(`No registered TravelBharat account was found for Twitter/X email "${cleanEmail}". Enter a registered email or register under "Register & Onboard".`);
+        return;
+      }
+
+      const loggedUser: TravelClient = match ? {
+        ...match,
+        loginMethod: "TwitterX"
+      } : {
+        id: "usr-tw-" + cleanEmail.replace(/[^a-zA-Z0-9]/g, "-") + "-" + Date.now(),
+        name: userName.trim(),
+        email: cleanEmail,
+        interest: form.interest || "All",
+        budget: form.budget || "Comfort",
+        companion: form.companion || "Solo Traveller",
+        loginMethod: "TwitterX",
+        createdAt: new Date().toISOString()
+      };
+
+      // Store in verified device local accounts so users see their own accounts next time on this device
+      try {
+        const stored = localStorage.getItem("travelbharat_local_twitterx_accounts");
+        const list = stored ? JSON.parse(stored) : [];
+        if (!list.some((acc: any) => acc.email.toLowerCase() === cleanEmail)) {
+          list.push({ name: userName.trim(), email: cleanEmail, id: loggedUser.id });
+          localStorage.setItem("travelbharat_local_twitterx_accounts", JSON.stringify(list));
+        }
+      } catch (e) {
+        console.error("Local account save failed", e);
+      }
+
+      await setDoc(doc(db, "users", loggedUser.id), loggedUser);
+      setModalType("none");
+      onComplete(loggedUser);
+    } catch (e: any) {
+      console.error("TwitterX login failed: ", e);
+      setError(`Twitter/X Sign In failed: ${e.message || e}`);
     }
   };
 
@@ -632,54 +721,347 @@ export default function ClientOnboarding({ onComplete }: ClientOnboardProps) {
           </motion.div>
         )}
 
+        {/* Mode Switcher Tabs */}
+        <div className="flex bg-slate-950/60 p-1.5 rounded-2xl border border-white/5 mb-6 relative z-10">
+          <button
+            onClick={() => {
+              setOnboardMode("login");
+              setError("");
+            }}
+            className={`flex-1 py-2 rounded-xl text-xs font-bold transition-all relative cursor-pointer ${
+              onboardMode === "login" 
+                ? "text-white bg-gradient-to-r from-amber-500/20 to-orange-500/25 border border-amber-500/30" 
+                : "text-slate-400 hover:text-slate-200 hover:bg-white/5 border border-transparent"
+            }`}
+          >
+            Sign In to Account
+          </button>
+          <button
+            onClick={() => {
+              setOnboardMode("signup");
+              setStep(1);
+              setError("");
+            }}
+            className={`flex-1 py-2 rounded-xl text-xs font-bold transition-all relative cursor-pointer ${
+              onboardMode === "signup" 
+                ? "text-white bg-gradient-to-r from-amber-500/20 to-orange-500/25 border border-amber-500/30" 
+                : "text-slate-400 hover:text-slate-200 hover:bg-white/5 border border-transparent"
+            }`}
+          >
+            Register & Onboard
+          </button>
+        </div>
+
         {/* Form area */}
         <div className="relative min-h-[230px] flex flex-col justify-center">
-          <div className="space-y-4 py-2">
-            <div>
-              <h4 className="text-sm font-extrabold text-white text-center mb-1">Verify Your Account</h4>
-              <p className="text-xs text-slate-400 text-center leading-normal max-w-sm mx-auto">
-                Authenticate securely to synchronize your personalized itineraries and explore monument guides.
-              </p>
+          {onboardMode === "login" ? (
+            <div className="space-y-4 py-2">
+              <div>
+                <h4 className="text-sm font-extrabold text-white text-center mb-1">Verify Your Account</h4>
+                <p className="text-xs text-slate-400 text-center leading-normal max-w-sm mx-auto">
+                  Authenticate securely to synchronize your personalized itineraries and explore monument guides.
+                </p>
+              </div>
+
+              <div className="space-y-3 pt-3">
+                <button
+                  onClick={handleRealGoogleLogin}
+                  className="w-full flex items-center justify-between py-3.5 px-5 bg-gradient-to-r from-red-600/10 via-orange-600/10 to-amber-600/10 hover:from-red-600/20 hover:via-orange-600/20 hover:to-amber-600/20 border border-white/10 hover:border-amber-500/40 text-white rounded-2xl text-xs font-bold transition-all cursor-pointer shadow-lg shadow-black/20 group active:scale-[0.98]"
+                  title="Sign In with Google Account"
+                >
+                  <div className="flex items-center gap-3">
+                    <span className="text-lg bg-white/10 w-8 h-8 rounded-xl flex items-center justify-center group-hover:scale-105 transition-transform">🌐</span>
+                    <span className="tracking-wide">Continue with Google Account</span>
+                  </div>
+                  <ChevronRight className="w-4 h-4 text-slate-400 group-hover:translate-x-0.5 transition-transform" />
+                </button>
+
+                <button
+                  onClick={() => {
+                    setError("");
+                    setModalType("facebook");
+                  }}
+                  className="w-full flex items-center justify-between py-3.5 px-5 bg-blue-600/10 hover:bg-blue-600/20 border border-white/10 hover:border-blue-500/45 text-white rounded-2xl text-xs font-bold transition-all cursor-pointer shadow-lg shadow-black/20 group active:scale-[0.98]"
+                  title="Sign In with Facebook"
+                >
+                  <div className="flex items-center gap-3">
+                    <span className="text-lg bg-blue-500/10 w-8 h-8 rounded-xl flex items-center justify-center group-hover:scale-105 transition-transform">👥</span>
+                    <span className="tracking-wide text-slate-200">Continue with Facebook</span>
+                  </div>
+                  <ChevronRight className="w-4 h-4 text-slate-400 group-hover:translate-x-0.5 transition-transform" />
+                </button>
+
+                <button
+                  onClick={() => {
+                    setError("");
+                    setModalType("twitterx");
+                  }}
+                  className="w-full flex items-center justify-between py-3.5 px-5 bg-slate-800/40 hover:bg-slate-800/60 border border-white/10 hover:border-slate-400/45 text-white rounded-2xl text-xs font-bold transition-all cursor-pointer shadow-lg shadow-black/20 group active:scale-[0.98]"
+                  title="Sign In with Twitter/X"
+                >
+                  <div className="flex items-center gap-3">
+                    <span className="text-lg bg-white/5 w-8 h-8 rounded-xl flex items-center justify-center group-hover:scale-105 transition-transform">𝕏</span>
+                    <span className="tracking-wide text-slate-200">Continue with Twitter/X</span>
+                  </div>
+                  <ChevronRight className="w-4 h-4 text-slate-400 group-hover:translate-x-0.5 transition-transform" />
+                </button>
+
+                <div className="relative flex py-2 items-center">
+                  <div className="flex-grow border-t border-white/5"></div>
+                  <span className="flex-shrink mx-4 text-[10px] text-slate-500 font-medium uppercase tracking-widest leading-none">or registered email</span>
+                  <div className="flex-grow border-t border-white/5"></div>
+                </div>
+
+                <div className="space-y-2.5">
+                  <div className="relative">
+                    <Mail className="absolute left-4 top-3.5 w-4 h-4 text-slate-500" />
+                    <input
+                      type="email"
+                      placeholder="Enter registered email address..."
+                      value={loginEmail}
+                      onChange={(e) => setLoginEmail(e.target.value)}
+                      className="w-full pl-11 pr-4 py-3 bg-slate-950/40 border border-white/10 text-white placeholder-slate-600 text-xs rounded-2xl focus:outline-none focus:ring-1 focus:ring-amber-500/30 focus:border-amber-400/35 transition-all font-medium"
+                    />
+                  </div>
+                  <button
+                    onClick={handleEmailLogin}
+                    className="w-full flex items-center justify-center gap-2 py-3 bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-white text-xs font-bold rounded-2xl transition-all cursor-pointer shadow-lg active:scale-[0.98]"
+                  >
+                    <LogIn className="w-3.5 h-3.5" />
+                    Direct Sign In
+                  </button>
+                </div>
+              </div>
             </div>
+          ) : (
+            /* ONBOARDING REGISTER FORM STEP BY STEP */
+            <div className="py-1">
+              {step === 1 && (
+                <div className="space-y-4">
+                  <div>
+                    <h4 className="text-sm font-extrabold text-white text-center mb-1">Step 1: Create Profile</h4>
+                    <p className="text-xs text-slate-400 text-center leading-normal max-w-xs mx-auto">
+                      Provide your name and preferred email to initialize custom travel recommendations.
+                    </p>
+                  </div>
 
-            <div className="space-y-3 pt-3">
-              <button
-                onClick={handleRealGoogleLogin}
-                className="w-full flex items-center justify-between py-3.5 px-5 bg-gradient-to-r from-red-600/10 via-orange-600/10 to-amber-600/10 hover:from-red-600/20 hover:via-orange-600/20 hover:to-amber-600/20 border border-white/10 hover:border-amber-500/40 text-white rounded-2xl text-xs font-bold transition-all cursor-pointer shadow-lg shadow-black/20 group active:scale-[0.98]"
-                title="Sign In with Google Account"
-              >
-                <div className="flex items-center gap-3">
-                  <span className="text-lg bg-white/10 w-8 h-8 rounded-xl flex items-center justify-center group-hover:scale-105 transition-transform">🌐</span>
-                  <span className="tracking-wide">Continue with Google Account</span>
-                </div>
-                <ChevronRight className="w-4 h-4 text-slate-400 group-hover:translate-x-0.5 transition-transform" />
-              </button>
+                  <div className="space-y-3.5 pt-2">
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Full Name</label>
+                      <div className="relative">
+                        <User className="absolute left-4 top-3.5 w-4 h-4 text-slate-500" />
+                        <input
+                          type="text"
+                          placeholder="e.g. Priyanshu Sharma"
+                          value={form.name}
+                          onChange={(e) => setForm({ ...form, name: e.target.value })}
+                          className="w-full pl-11 pr-4 py-3 bg-slate-950/40 border border-white/10 text-white placeholder-slate-600 text-xs rounded-2xl focus:outline-none focus:ring-1 focus:ring-amber-500/30 focus:border-amber-400/40 transition-all font-medium"
+                        />
+                      </div>
+                    </div>
 
-              <button
-                onClick={() => handleSimpleMockLogin("Facebook")}
-                className="w-full flex items-center justify-between py-3.5 px-5 bg-blue-600/10 hover:bg-blue-600/20 border border-white/10 hover:border-blue-500/45 text-white rounded-2xl text-xs font-bold transition-all cursor-pointer shadow-lg shadow-black/20 group active:scale-[0.98]"
-                title="Sign In with Facebook"
-              >
-                <div className="flex items-center gap-3">
-                  <span className="text-lg bg-blue-500/10 w-8 h-8 rounded-xl flex items-center justify-center group-hover:scale-105 transition-transform">👥</span>
-                  <span className="tracking-wide text-slate-200">Continue with Facebook</span>
-                </div>
-                <ChevronRight className="w-4 h-4 text-slate-400 group-hover:translate-x-0.5 transition-transform" />
-              </button>
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Email Address</label>
+                      <div className="relative">
+                        <Mail className="absolute left-4 top-3.5 w-4 h-4 text-slate-500" />
+                        <input
+                          type="email"
+                          placeholder="e.g. wanderer@domain.com"
+                          value={form.email}
+                          onChange={(e) => setForm({ ...form, email: e.target.value })}
+                          className="w-full pl-11 pr-4 py-3 bg-slate-950/40 border border-white/10 text-white placeholder-slate-600 text-xs rounded-2xl focus:outline-none focus:ring-1 focus:ring-amber-500/30 focus:border-amber-400/40 transition-all font-medium"
+                        />
+                      </div>
+                    </div>
 
-              <button
-                onClick={() => handleSimpleMockLogin("TwitterX")}
-                className="w-full flex items-center justify-between py-3.5 px-5 bg-slate-800/40 hover:bg-slate-800/60 border border-white/10 hover:border-slate-400/45 text-white rounded-2xl text-xs font-bold transition-all cursor-pointer shadow-lg shadow-black/20 group active:scale-[0.98]"
-                title="Sign In with Twitter/X"
-              >
-                <div className="flex items-center gap-3">
-                  <span className="text-lg bg-white/5 w-8 h-8 rounded-xl flex items-center justify-center group-hover:scale-105 transition-transform">𝕏</span>
-                  <span className="tracking-wide text-slate-200">Continue with Twitter/X</span>
+                    <button
+                      onClick={() => {
+                        if (validateStep1()) {
+                          const exists = firebaseUsersList.some(u => u.email.toLowerCase() === form.email.trim().toLowerCase());
+                          if (exists) {
+                            setError("This email address is already registered. Please go to the 'Sign In' tab instead.");
+                            return;
+                          }
+                          setStep(2);
+                        }
+                      }}
+                      className="w-full flex items-center justify-center gap-2 py-3.5 bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-white text-xs font-black rounded-2xl transition-all cursor-pointer shadow-lg active:scale-[0.98] mt-4"
+                    >
+                      Continue & Select Preferences
+                      <ChevronRight className="w-4 h-4" />
+                    </button>
+                  </div>
                 </div>
-                <ChevronRight className="w-4 h-4 text-slate-400 group-hover:translate-x-0.5 transition-transform" />
-              </button>
+              )}
+
+              {step === 2 && (
+                <div className="space-y-4">
+                  <div>
+                    <h4 className="text-sm font-extrabold text-white text-center mb-1">Step 2: Personalize Preferences</h4>
+                    <p className="text-xs text-slate-400 text-center leading-normal max-w-xs mx-auto">
+                      Choose preferences so we can customize historical sights and itineraries for you.
+                    </p>
+                  </div>
+
+                  <div className="space-y-4 pt-2">
+                    <div className="space-y-1.5">
+                      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Primary Travel Interest</span>
+                      <div className="grid grid-cols-3 gap-2">
+                        {["Heritage", "Nature", "Religious", "Adventure", "All"].map((interest) => (
+                          <button
+                            key={interest}
+                            onClick={() => setForm({ ...form, interest })}
+                            className={`py-2 px-2 rounded-xl text-[11px] font-semibold border transition-all text-center cursor-pointer ${
+                              form.interest === interest
+                                ? "bg-amber-500/25 text-amber-300 border-amber-500/50 shadow-inner"
+                                : "bg-slate-950/30 text-slate-400 border-white/5 hover:border-white/10"
+                            }`}
+                          >
+                            {interest}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="space-y-1.5">
+                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Budget Level</span>
+                        <div className="space-y-1.5">
+                          {["Eco-friendly", "Comfort", "Luxury"].map((budget) => (
+                            <button
+                              key={budget}
+                              onClick={() => setForm({ ...form, budget })}
+                              className={`w-full py-2 px-3 rounded-xl text-xs font-semibold border transition-all text-left cursor-pointer ${
+                                form.budget === budget
+                                  ? "bg-amber-500/25 text-amber-300 border-amber-500/50 shadow-inner"
+                                  : "bg-slate-950/30 text-slate-400 border-white/5 hover:border-white/10"
+                              }`}
+                            >
+                              {budget}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      <div className="space-y-1.5">
+                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Travel Group</span>
+                        <div className="space-y-1.5">
+                          {["Solo Traveller", "Couple", "Family", "Group Tour"].map((companion) => (
+                            <button
+                              key={companion}
+                              onClick={() => setForm({ ...form, companion })}
+                              className={`w-full py-2 px-3 rounded-xl text-xs font-semibold border transition-all text-left cursor-pointer ${
+                                form.companion === companion
+                                  ? "bg-amber-500/25 text-amber-300 border-amber-500/50 shadow-inner"
+                                  : "bg-slate-950/30 text-slate-400 border-white/5 hover:border-white/10"
+                              }`}
+                            >
+                              {companion}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex gap-2.5 pt-3">
+                      <button
+                        onClick={() => { setError(""); setStep(1); }}
+                        className="flex-1 py-3 bg-slate-800 hover:bg-slate-750 text-slate-300 text-xs font-bold rounded-2xl transition-all cursor-pointer border border-white/5"
+                      >
+                        Back
+                      </button>
+                      <button
+                        onClick={() => { setError(""); setStep(3); }}
+                        className="flex-[2] py-3 bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-white text-xs font-black rounded-2xl transition-all cursor-pointer shadow-lg active:scale-[0.98]"
+                      >
+                        Next: Secure ID Link
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {step === 3 && (
+                <div className="space-y-4">
+                  <div>
+                    <h4 className="text-sm font-extrabold text-white text-center mb-1">Step 3: Secure Your Profile</h4>
+                    <p className="text-xs text-slate-400 text-center leading-normal max-w-sm mx-auto">
+                      Verify or link your social profile to complete the creation of your account <span className="text-amber-400">"{form.name}"</span>. Next time, you can log in instantly using this provider.
+                    </p>
+                  </div>
+
+                  <div className="space-y-3 pt-2">
+                    <button
+                      onClick={async () => {
+                        setNewGoogleName(form.name);
+                        setNewGoogleEmail(form.email);
+                        setModalType("google");
+                      }}
+                      className="w-full flex items-center justify-between py-3 px-5 bg-gradient-to-r from-red-600/10 via-orange-600/10 to-amber-600/10 hover:from-red-600/15 hover:via-orange-600/15 hover:to-amber-600/15 border border-white/10 hover:border-amber-500/40 text-white rounded-2xl text-xs font-bold transition-all cursor-pointer group shadow-lg shadow-black/10 active:scale-[0.98]"
+                    >
+                      <div className="flex items-center gap-3">
+                        <span className="text-sm bg-white/10 w-7 h-7 rounded-lg flex items-center justify-center">🌐</span>
+                        <span className="tracking-wide">Link Google Account</span>
+                      </div>
+                      <ChevronRight className="w-4 h-4 text-slate-400 group-hover:translate-x-0.5 transition-transform" />
+                    </button>
+
+                    <button
+                      onClick={async () => {
+                        setNewFacebookName(form.name);
+                        setNewFacebookEmail(form.email);
+                        setModalType("facebook");
+                      }}
+                      className="w-full flex items-center justify-between py-3 px-5 bg-blue-600/10 hover:bg-blue-600/15 border border-white/10 hover:border-blue-500/40 text-white rounded-2xl text-xs font-bold transition-all cursor-pointer group shadow-lg shadow-black/10 active:scale-[0.98]"
+                    >
+                      <div className="flex items-center gap-3">
+                        <span className="text-sm bg-blue-500/10 w-7 h-7 rounded-lg flex items-center justify-center">👥</span>
+                        <span className="tracking-wide text-slate-200">Link Facebook Secure</span>
+                      </div>
+                      <ChevronRight className="w-4 h-4 text-slate-400 group-hover:translate-x-0.5 transition-transform" />
+                    </button>
+
+                    <button
+                      onClick={async () => {
+                        setNewTwitterXName(form.name);
+                        setNewTwitterXEmail(form.email);
+                        setModalType("twitterx");
+                      }}
+                      className="w-full flex items-center justify-between py-3 px-5 bg-slate-800/40 hover:bg-slate-800/60 border border-white/10 hover:border-slate-400/40 text-white rounded-2xl text-xs font-bold transition-all cursor-pointer group shadow-lg shadow-black/10 active:scale-[0.98]"
+                    >
+                      <div className="flex items-center gap-3">
+                        <span className="text-sm bg-white/5 w-7 h-7 rounded-lg flex items-center justify-center">𝕏</span>
+                        <span className="tracking-wide text-slate-200">Link Twitter/X Secure</span>
+                      </div>
+                      <ChevronRight className="w-4 h-4 text-slate-400 group-hover:translate-x-0.5 transition-transform" />
+                    </button>
+
+                    <div className="relative flex py-2 items-center">
+                      <div className="flex-grow border-t border-white/5"></div>
+                      <span className="flex-shrink mx-3 text-[9px] text-slate-600 uppercase tracking-widest font-bold">or use email registration</span>
+                      <div className="flex-grow border-t border-white/5"></div>
+                    </div>
+
+                    <button
+                      onClick={handleSignupSubmit}
+                      className="w-full py-2.5 bg-gradient-to-r from-amber-500/20 to-orange-500/25 border border-amber-500/30 hover:bg-gradient-to-r hover:from-amber-500/30 hover:to-orange-500/40 text-slate-200 hover:text-amber-300 text-xs font-bold rounded-2xl transition-all cursor-pointer shadow-lg active:scale-[0.98]"
+                    >
+                      Complete Email Registration
+                    </button>
+
+                    <div className="flex gap-2.5 pt-2">
+                      <button
+                        onClick={() => { setError(""); setStep(2); }}
+                        className="w-full py-2 bg-slate-900 border border-white/5 hover:bg-slate-800 text-slate-400 text-xs font-bold rounded-xl transition-all cursor-pointer"
+                      >
+                        Back to preferences
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
-          </div>
+          )}
         </div>
 
         {/* Footer info skip section */}
@@ -845,6 +1227,262 @@ export default function ClientOnboarding({ onComplete }: ClientOnboardProps) {
                 </div>
               </motion.div>
             )}
+
+            {modalType === "facebook" && (
+              /* AUTHENTIC DYNAMIC FACEBOOK SELECTOR MODAL */
+              <motion.div
+                initial={{ scale: 0.95, y: 20 }}
+                animate={{ scale: 1, y: 0 }}
+                exit={{ scale: 0.95, y: 20 }}
+                className="w-full max-w-sm bg-white rounded-3xl overflow-hidden shadow-2xl p-6 relative font-sans text-slate-800"
+              >
+                {/* Facebook Blue Logo */}
+                <div className="flex justify-center mb-4">
+                  <div className="w-10 h-10 rounded-full bg-[#1877F2] flex items-center justify-center text-white font-black text-2xl font-serif">
+                    f
+                  </div>
+                </div>
+                
+                <div className="text-center mb-6">
+                  <h3 className="text-xl font-bold text-slate-900 tracking-tight">
+                    {isAddingFacebookAccount ? "Sign In" : "Choose your Facebook account"}
+                  </h3>
+                  <p className="text-xs text-slate-500 mt-1">to continue to <span className="font-semibold text-blue-600">TravelBharat</span></p>
+                </div>
+
+                {isAddingFacebookAccount ? (
+                  <div className="space-y-4 mb-6">
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">Facebook Profile Name</label>
+                      <input 
+                        type="text"
+                        placeholder="e.g. Priyanshu Sharma"
+                        value={newFacebookName}
+                        onChange={(e) => setNewFacebookName(e.target.value)}
+                        className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 text-slate-800 text-xs rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all font-medium"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">Facebook Email / Username</label>
+                      <input 
+                        type="email"
+                        placeholder="e.g. priyanshu@facebook.com"
+                        value={newFacebookEmail}
+                        onChange={(e) => setNewFacebookEmail(e.target.value)}
+                        className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 text-slate-800 text-xs rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all font-medium"
+                      />
+                    </div>
+
+                    <button
+                      onClick={() => {
+                        if (!newFacebookName.trim() || !newFacebookEmail.trim()) {
+                          setError("Please provide both Name and Email to verify Facebook login.");
+                          return;
+                        }
+                        if (!newFacebookEmail.includes("@")) {
+                          setError("Invalid email structure specified.");
+                          return;
+                        }
+                        handleFacebookAutoLogin(newFacebookName.trim(), newFacebookEmail.trim());
+                      }}
+                      className="w-full py-3 bg-[#1877F2] hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition-all shadow-md cursor-pointer active:scale-95"
+                    >
+                      Verify Facebook Login
+                    </button>
+
+                    {localFacebookAccounts.length > 0 && (
+                      <button
+                        onClick={() => setIsAddingFacebookAccount(false)}
+                        className="w-full text-center text-xs text-blue-600 hover:text-blue-800 font-bold py-1 cursor-pointer hover:underline"
+                      >
+                        Back to Saved Accounts
+                      </button>
+                    )}
+                  </div>
+                ) : (
+                  /* Dynamic Facebook lists */
+                  <div className="space-y-2 mb-6">
+                    <div className="space-y-2 max-h-[180px] overflow-y-auto pr-1">
+                      {localFacebookAccounts.map((acc) => {
+                        const initial = acc.name.charAt(0).toUpperCase();
+                        return (
+                          <button
+                            key={acc.email}
+                            onClick={() => handleFacebookAutoLogin(acc.name, acc.email)}
+                            className="w-full flex items-center gap-3 p-3 hover:bg-slate-50 border border-slate-100 rounded-2xl transition-all text-left cursor-pointer group"
+                          >
+                            <div className="w-10 h-10 rounded-full bg-[#1877F2] text-white font-extrabold text-base flex items-center justify-center shadow-inner group-hover:scale-105 transition-transform duration-200">
+                              {initial}
+                            </div>
+                            <div className="min-w-0 flex-grow">
+                              <p className="text-sm font-semibold text-slate-800 leading-tight">{acc.name}</p>
+                              <p className="text-xs text-slate-500 truncate mt-0.5">{acc.email}</p>
+                            </div>
+                            <div className="w-4 h-4 rounded-full border border-slate-200 flex items-center justify-center p-0.5 group-hover:border-blue-500">
+                              <div className="w-2 h-2 rounded-full bg-[#1877F2] scale-0 group-hover:scale-100 transition-transform" />
+                            </div>
+                          </button>
+                        );
+                      })}
+                    </div>
+
+                    <div className="pt-2 border-t border-slate-100">
+                      <button
+                        onClick={() => setIsAddingFacebookAccount(true)}
+                        className="w-full text-center text-xs text-blue-600 hover:text-blue-800 font-bold py-2 mt-1 cursor-pointer hover:underline"
+                      >
+                        Connect another profile
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                <div className="text-[10px] text-slate-400 leading-relaxed text-center px-1 mb-4">
+                  To continue, Facebook secure linker will sync your profile email and permissions with TravelBharat. Review our Privacy Policy.
+                </div>
+
+                <div className="flex justify-end pt-3 border-t border-slate-100">
+                  <button
+                    onClick={() => {
+                      setModalType("none");
+                      setError("");
+                    }}
+                    className="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 text-xs font-bold transition-all cursor-pointer"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </motion.div>
+            )}
+
+            {modalType === "twitterx" && (
+              /* AUTHENTIC 𝕏 SELECTOR MODAL */
+              <motion.div
+                initial={{ scale: 0.95, y: 20 }}
+                animate={{ scale: 1, y: 0 }}
+                exit={{ scale: 0.95, y: 20 }}
+                className="w-full max-w-sm bg-slate-950 border border-slate-800 rounded-3xl overflow-hidden shadow-2xl p-6 relative font-sans text-white"
+              >
+                {/* 𝕏 White minimalist logo */}
+                <div className="flex justify-center mb-4">
+                  <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center text-black font-black text-xl">
+                    𝕏
+                  </div>
+                </div>
+                
+                <div className="text-center mb-6">
+                  <h3 className="text-xl font-black tracking-tight text-white">
+                    {isAddingTwitterXAccount ? "Sign in to 𝕏" : "Choose 𝕏 Profile"}
+                  </h3>
+                  <p className="text-xs text-slate-400 mt-1">to authorize <span className="font-semibold text-amber-500">TravelBharat</span></p>
+                </div>
+
+                {isAddingTwitterXAccount ? (
+                  <div className="space-y-4 mb-6">
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Full Name</label>
+                      <input 
+                        type="text"
+                        placeholder="e.g. Priyanshu Sharma"
+                        value={newTwitterXName}
+                        onChange={(e) => setNewTwitterXName(e.target.value)}
+                        className="w-full px-4 py-2.5 bg-slate-900 border border-slate-800 text-white text-xs rounded-xl focus:outline-none focus:ring-1 focus:ring-white/20 focus:border-white transition-all font-medium"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Email Address</label>
+                      <input 
+                        type="email"
+                        placeholder="e.g. priyandhu@x.com"
+                        value={newTwitterXEmail}
+                        onChange={(e) => setNewTwitterXEmail(e.target.value)}
+                        className="w-full px-4 py-2.5 bg-slate-900 border border-slate-800 text-white text-xs rounded-xl focus:outline-none focus:ring-1 focus:ring-white/20 focus:border-white transition-all font-medium"
+                      />
+                    </div>
+
+                    <button
+                      onClick={() => {
+                        if (!newTwitterXName.trim() || !newTwitterXEmail.trim()) {
+                          setError("Please provide both Name and Email to verify Twitter/X auth.");
+                          return;
+                        }
+                        if (!newTwitterXEmail.includes("@")) {
+                          setError("Invalid email structure specified.");
+                          return;
+                        }
+                        handleTwitterXAutoLogin(newTwitterXName.trim(), newTwitterXEmail.trim());
+                      }}
+                      className="w-full py-3 bg-white hover:bg-slate-100 text-black rounded-xl text-xs font-bold transition-all shadow-md cursor-pointer active:scale-95"
+                    >
+                      Sign In with 𝕏 Secure
+                    </button>
+
+                    {localTwitterXAccounts.length > 0 && (
+                      <button
+                        onClick={() => setIsAddingTwitterXAccount(false)}
+                        className="w-full text-center text-xs text-white hover:text-slate-300 font-bold py-1 cursor-pointer hover:underline"
+                      >
+                        Back to Saved Profiles
+                      </button>
+                    )}
+                  </div>
+                ) : (
+                  /* Dynamic Twitter/X list */
+                  <div className="space-y-2 mb-6">
+                    <div className="space-y-2 max-h-[180px] overflow-y-auto pr-1">
+                      {localTwitterXAccounts.map((acc) => {
+                        const initial = acc.name.charAt(0).toUpperCase();
+                        return (
+                          <button
+                            key={acc.email}
+                            onClick={() => handleTwitterXAutoLogin(acc.name, acc.email)}
+                            className="w-full flex items-center gap-3 p-3 hover:bg-white/5 border border-white/5 rounded-2xl transition-all text-left cursor-pointer group"
+                          >
+                            <div className="w-10 h-10 rounded-full bg-white text-black font-extrabold text-base flex items-center justify-center shadow-inner group-hover:scale-105 transition-transform duration-200">
+                              {initial}
+                            </div>
+                            <div className="min-w-0 flex-grow">
+                              <p className="text-sm font-semibold text-white leading-tight">{acc.name}</p>
+                              <p className="text-xs text-slate-400 truncate mt-0.5">{acc.email}</p>
+                            </div>
+                            <div className="w-4 h-4 rounded-full border border-slate-800 flex items-center justify-center p-0.5 group-hover:border-white">
+                              <div className="w-2 h-2 rounded-full bg-white scale-0 group-hover:scale-100 transition-transform" />
+                            </div>
+                          </button>
+                        );
+                      })}
+                    </div>
+
+                    <div className="pt-2 border-t border-white/5">
+                      <button
+                        onClick={() => setIsAddingTwitterXAccount(true)}
+                        className="w-full text-center text-xs text-slate-300 hover:text-white font-bold py-2 mt-1 cursor-pointer hover:underline"
+                      >
+                        Link another handle
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                <div className="text-[10px] text-slate-500 leading-relaxed text-center px-1 mb-4">
+                  To continue, authorize TravelBharat to access public profile info and secure verification hooks. Review Privacy Guidelines.
+                </div>
+
+                <div className="flex justify-end pt-3 border-t border-white/5">
+                  <button
+                    onClick={() => {
+                      setModalType("none");
+                      setError("");
+                    }}
+                    className="px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-slate-300 text-xs font-bold transition-all cursor-pointer"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </motion.div>
+            )}
+
+            {/* OTP Modals removed for direct login experience */}
           </motion.div>
         )}
       </AnimatePresence>
