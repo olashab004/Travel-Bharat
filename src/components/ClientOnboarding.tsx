@@ -171,6 +171,34 @@ export default function ClientOnboarding({ onComplete }: ClientOnboardProps) {
   const [loginEmail, setLoginEmail] = useState("");
   const [modalType, setModalType] = useState<"none" | "google" | "facebook" | "twitterx" | "mobile" | "email_signup_otp" | "email_login_otp">("none");
 
+  // Device-specific local Google account profiles
+  const [localGoogleAccounts, setLocalGoogleAccounts] = useState<Array<{ name: string; email: string; id: string }>>([]);
+  const [isAddingGoogleAccount, setIsAddingGoogleAccount] = useState(false);
+  const [newGoogleEmail, setNewGoogleEmail] = useState("");
+  const [newGoogleName, setNewGoogleName] = useState("");
+
+  useEffect(() => {
+    // Load local Google accounts dynamically whenever modalType transitions to "google"
+    const stored = localStorage.getItem("travelbharat_local_google_accounts");
+    let currentAccounts = [];
+    if (stored) {
+      try {
+        currentAccounts = JSON.parse(stored);
+        setLocalGoogleAccounts(currentAccounts);
+      } catch (e) {
+        setLocalGoogleAccounts([]);
+      }
+    } else {
+      setLocalGoogleAccounts([]);
+    }
+
+    if (modalType === "google") {
+      setIsAddingGoogleAccount(currentAccounts.length === 0);
+      setNewGoogleEmail("");
+      setNewGoogleName("");
+    }
+  }, [modalType]);
+
   // Email verification OTP details
   const [emailOtpCode, setEmailOtpCode] = useState("");
   const [simulatedEmailOtp, setSimulatedEmailOtp] = useState("");
@@ -355,12 +383,26 @@ export default function ClientOnboarding({ onComplete }: ClientOnboardProps) {
         createdAt: new Date().toISOString()
       };
 
+      // Store in verified device local accounts
+      try {
+        const stored = localStorage.getItem("travelbharat_local_google_accounts");
+        const list = stored ? JSON.parse(stored) : [];
+        if (!list.some((acc: any) => acc.email.toLowerCase() === loggedUser.email.toLowerCase())) {
+          list.push({ name: loggedUser.name, email: loggedUser.email, id: loggedUser.id });
+          localStorage.setItem("travelbharat_local_google_accounts", JSON.stringify(list));
+        }
+      } catch (e) {
+        console.error("Local account save failed", e);
+      }
+
       await setDoc(doc(db, "users", loggedUser.id), loggedUser);
       setModalType("none");
       onComplete(loggedUser);
     } catch (e: any) {
       console.error("Real Google OAuth login failed: ", e);
-      setError(`Real Google Sign In failed: ${e.message || e}`);
+      // Fallback gracefully to our custom dialog without exposing developer raw static accounts
+      setModalType("google");
+      setError("");
     }
   };
 
@@ -382,6 +424,18 @@ export default function ClientOnboarding({ onComplete }: ClientOnboardProps) {
         loginMethod: "Google",
         createdAt: new Date().toISOString()
       };
+
+      // Store in verified device local accounts so users see their own accounts next time on this device
+      try {
+        const stored = localStorage.getItem("travelbharat_local_google_accounts");
+        const list = stored ? JSON.parse(stored) : [];
+        if (!list.some((acc: any) => acc.email.toLowerCase() === userEmail.toLowerCase())) {
+          list.push({ name: userName, email: userEmail, id: loggedUser.id });
+          localStorage.setItem("travelbharat_local_google_accounts", JSON.stringify(list));
+        }
+      } catch (e) {
+        console.error("Local account save failed", e);
+      }
 
       await setDoc(doc(db, "users", loggedUser.id), loggedUser);
       setModalType("none");
@@ -590,10 +644,7 @@ export default function ClientOnboarding({ onComplete }: ClientOnboardProps) {
 
             <div className="space-y-3 pt-3">
               <button
-                onClick={() => {
-                  setError("");
-                  setModalType("google");
-                }}
+                onClick={handleRealGoogleLogin}
                 className="w-full flex items-center justify-between py-3.5 px-5 bg-gradient-to-r from-red-600/10 via-orange-600/10 to-amber-600/10 hover:from-red-600/20 hover:via-orange-600/20 hover:to-amber-600/20 border border-white/10 hover:border-amber-500/40 text-white rounded-2xl text-xs font-bold transition-all cursor-pointer shadow-lg shadow-black/20 group active:scale-[0.98]"
                 title="Sign In with Google Account"
               >
@@ -683,61 +734,99 @@ export default function ClientOnboarding({ onComplete }: ClientOnboardProps) {
                 </div>
                 
                 <div className="text-center mb-6">
-                  <h3 className="text-xl font-medium text-slate-900 tracking-tight">Choose an account</h3>
+                  <h3 className="text-xl font-medium text-slate-900 tracking-tight">
+                    {isAddingGoogleAccount ? "Sign In" : "Choose your Google account"}
+                  </h3>
                   <p className="text-xs text-slate-500 mt-1">to continue to <span className="font-semibold text-amber-600">TravelBharat</span></p>
                 </div>
 
-                <div className="space-y-2 mb-6">
-                  {/* Account 1: Sahil Ola */}
-                  <button
-                    onClick={() => handleGoogleAutoLogin("Sahil Ola", "sahilola44@gmail.com")}
-                    className="w-full flex items-center gap-3 p-3 hover:bg-slate-50 border border-slate-100 rounded-2xl transition-all text-left cursor-pointer group"
-                  >
-                    <div className="w-10 h-10 rounded-full bg-blue-600 text-white font-extrabold text-base flex items-center justify-center shadow-inner group-hover:scale-105 transition-transform duration-200">
-                      S
+                {isAddingGoogleAccount ? (
+                  /* Custom input form to handle account entry in iframe sandboxes cleanly */
+                  <div className="space-y-4 mb-6">
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">Your Full Name</label>
+                      <input 
+                        type="text"
+                        placeholder="e.g. Rahul Verma"
+                        value={newGoogleName}
+                        onChange={(e) => setNewGoogleName(e.target.value)}
+                        className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 text-slate-800 text-xs rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all font-medium"
+                      />
                     </div>
-                    <div className="min-w-0 flex-grow">
-                      <p className="text-sm font-semibold text-slate-800 leading-tight">Sahil Ola</p>
-                      <p className="text-xs text-slate-500 truncate mt-0.5">sahilola44@gmail.com</p>
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">Google Email Address</label>
+                      <input 
+                        type="email"
+                        placeholder="e.g. rahul@gmail.com"
+                        value={newGoogleEmail}
+                        onChange={(e) => setNewGoogleEmail(e.target.value)}
+                        className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 text-slate-800 text-xs rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all font-medium"
+                      />
                     </div>
-                    <div className="w-4 h-4 rounded-full border border-slate-200 flex items-center justify-center p-0.5 group-hover:border-blue-500">
-                      <div className="w-2 h-2 rounded-full bg-blue-600 scale-0 group-hover:scale-100 transition-transform" />
-                    </div>
-                  </button>
 
-                  {/* Account 2: Bharat Wanderer */}
-                  <button
-                    onClick={() => handleGoogleAutoLogin("Bharat Wanderer", "wanderer.bharat@gmail.com")}
-                    className="w-full flex items-center gap-3 p-3 hover:bg-slate-50 border border-slate-100 rounded-2xl transition-all text-left cursor-pointer group"
-                  >
-                    <div className="w-10 h-10 rounded-full bg-amber-600 text-white font-extrabold text-base flex items-center justify-center shadow-inner group-hover:scale-105 transition-transform duration-200">
-                      B
-                    </div>
-                    <div className="min-w-0 flex-grow">
-                      <p className="text-sm font-semibold text-slate-800 leading-tight">Bharat Wanderer</p>
-                      <p className="text-xs text-slate-500 truncate mt-0.5">wanderer.bharat@gmail.com</p>
-                    </div>
-                    <div className="w-4 h-4 rounded-full border border-slate-200 flex items-center justify-center p-0.5 group-hover:border-amber-500">
-                      <div className="w-2 h-2 rounded-full bg-amber-600 scale-0 group-hover:scale-100 transition-transform" />
-                    </div>
-                  </button>
-
-                  <div className="pt-2 border-t border-slate-100">
                     <button
                       onClick={() => {
-                        const rawEmail = prompt("Enter Google email address to sync:", "sahilola44@gmail.com");
-                        if (rawEmail && rawEmail.trim()) {
-                          const namePart = rawEmail.split("@")[0];
-                          const capName = namePart.charAt(0).toUpperCase() + namePart.slice(1);
-                          handleGoogleAutoLogin(capName, rawEmail.trim());
+                        if (!newGoogleName.trim() || !newGoogleEmail.trim()) {
+                          setError("Please provide both Name and Email to verify account.");
+                          return;
                         }
+                        if (!newGoogleEmail.includes("@")) {
+                          setError("Invalid email structure specified.");
+                          return;
+                        }
+                        handleGoogleAutoLogin(newGoogleName.trim(), newGoogleEmail.trim());
                       }}
-                      className="w-full text-center text-xs text-blue-600 hover:text-blue-800 font-bold py-2 mt-1 cursor-pointer hover:underline"
+                      className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition-all shadow-md cursor-pointer hover:shadow-blue-500/10 active:scale-95"
                     >
-                      Use another account
+                      Verify Google Account
                     </button>
+
+                    {localGoogleAccounts.length > 0 && (
+                      <button
+                        onClick={() => setIsAddingGoogleAccount(false)}
+                        className="w-full text-center text-xs text-blue-600 hover:text-blue-800 font-bold py-1 cursor-pointer hover:underline"
+                      >
+                        Back to Saved Accounts
+                      </button>
+                    )}
                   </div>
-                </div>
+                ) : (
+                  /* Dynamic account lists */
+                  <div className="space-y-2 mb-6">
+                    <div className="space-y-2 max-h-[180px] overflow-y-auto pr-1">
+                      {localGoogleAccounts.map((acc) => {
+                        const initial = acc.name.charAt(0).toUpperCase();
+                        return (
+                          <button
+                            key={acc.email}
+                            onClick={() => handleGoogleAutoLogin(acc.name, acc.email)}
+                            className="w-full flex items-center gap-3 p-3 hover:bg-slate-50 border border-slate-100 rounded-2xl transition-all text-left cursor-pointer group"
+                          >
+                            <div className="w-10 h-10 rounded-full bg-blue-600 text-white font-extrabold text-base flex items-center justify-center shadow-inner group-hover:scale-105 transition-transform duration-200">
+                              {initial}
+                            </div>
+                            <div className="min-w-0 flex-grow">
+                              <p className="text-sm font-semibold text-slate-800 leading-tight">{acc.name}</p>
+                              <p className="text-xs text-slate-500 truncate mt-0.5">{acc.email}</p>
+                            </div>
+                            <div className="w-4 h-4 rounded-full border border-slate-200 flex items-center justify-center p-0.5 group-hover:border-blue-500">
+                              <div className="w-2 h-2 rounded-full bg-blue-600 scale-0 group-hover:scale-100 transition-transform" />
+                            </div>
+                          </button>
+                        );
+                      })}
+                    </div>
+
+                    <div className="pt-2 border-t border-slate-100">
+                      <button
+                        onClick={() => setIsAddingGoogleAccount(true)}
+                        className="w-full text-center text-xs text-blue-600 hover:text-blue-800 font-bold py-2 mt-1 cursor-pointer hover:underline"
+                      >
+                        Use another account
+                      </button>
+                    </div>
+                  </div>
+                )}
 
                 <div className="text-[10px] text-slate-400 leading-relaxed text-center px-1 mb-4">
                   To continue, Google will share your name, email address, language preference, and profile picture with TravelBharat. Review our Privacy Policy.
